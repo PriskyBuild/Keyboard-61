@@ -75,7 +75,7 @@ export function CoinCounter({
       )}
       aria-label={`${coins} coins`}
     >
-      <span aria-hidden>🪙</span>
+      <span aria-hidden className="animate-coin-spin inline-block">🪙</span>
       <span className="tabular-nums">{displayedCoins.toLocaleString()}</span>
       {delta && delta > 0 ? (
         <span

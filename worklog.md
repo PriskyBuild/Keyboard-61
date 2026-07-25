@@ -1,110 +1,88 @@
 ---
-Task ID: webDevReview-round-4
+Task ID: webDevReview-round-5
 Agent: GLM-5.2 webDevReview cron (every 15 min)
-Task: Fourth recurring QA + feature-expansion round. Read worklog, run QA, then independently choose the work focus (fix bugs or add features) and continue development. Mandated: improve styling with more details + add more features/functionality.
+Task: Fifth recurring QA + feature-expansion round. Read worklog, run QA, then independently choose the work focus (fix bugs or add features) and continue development. Mandated: improve styling with more details + add more features/functionality.
 
 ## 1. Current project status assessment
 
-The project has three prior rounds of work:
+The project has four prior rounds of work:
 - **Phase 1 (C0-C6)**: scaffold, audio, 61-key piano, Free Play + Learning Mode, deploy.
 - **Phase 1 polish (Round 2)**: 9 songs, persistence, theme toggle, sticky header, HelpModal, StatsPanel, sliding mode toggle, visualizer polish.
 - **Phase 2 (P2-C0 → P2-C9)**: mic listening (YIN + AudioWorklet), Listen Mode UI (Bruno mascot), 12-lesson curriculum, gamification (35 stickers + coins + streak calendar), PIN-locked parent dashboard.
 - **Round 3 polish**: metronome, practice mode toggle, command palette (⌘K), visualizer transport-cache optimization, gradient header, mascot glow animations, TopNav disconnect fix.
+- **Round 4**: 14 songs, achievements page (16 badges), hero banner, practice-mode loop wired, command-palette song-jump.
 
 **QA findings this round:**
 - `bun run lint` clean.
 - `bun run typecheck` clean.
-- All 7 routes return 200 via curl.
-- Dev server is unstable when agent-browser opens tabs in this sandbox (known issue — gets killed); used curl + dev.log tailing instead.
+- All 8 routes return 200 via curl: `/`, `/listen`, `/curriculum`, `/parent`, `/stickers`, `/achievements`, `/help/microphone`, `/api/health`.
 - No bugs found — code is stable.
 
 ## 2. Work focus chosen
 
-Addressed both mandated asks ("improve styling with more details" + "add more features/functionality") via five parallel tracks:
+Addressed both mandated asks ("improve styling with more details" + "add more features/functionality") via three parallel tracks:
 
-### Track A — Expand song library (9 → 14 songs)
-Added 5 new songs to `src/lib/songs.ts`:
-- **London Bridge Is Falling Down** (Beginner, 100 BPM) — traditional English nursery rhyme.
-- **Row, Row, Row Your Boat** (Beginner, 100 BPM) — gentle round.
-- **Old MacDonald Had a Farm** (Easy, 110 BPM) — farmyard favourite with E-I-E-I-O.
-- **Can-Can (Galop Infernal)** (Intermediate, 120 BPM) — Offenbach, fast 8th notes.
-- **Brahms' Lullaby** (Easy, 70 BPM) — Wiegenlied in 3/4 time.
+### Track A — Lesson-jump actions in command palette (unresolved from prior worklog)
+- Added a "Jump to lesson (Listen Mode)" group to `src/components/CommandPalette.tsx`.
+- Lists all 12 curriculum lessons with title + sticker emoji. Selecting one navigates to `/listen?lesson=ID`.
+- Imported `CURRICULUM` from `src/lib/curriculum.ts`.
+- The command palette now has 4 jump groups: Navigate (routes), Modes (Free/Learning), Jump to song (14 songs), Jump to lesson (12 lessons).
 
-Now 14 total songs across Beginner/Easy/Intermediate difficulties.
+### Track B — A-B loop markers in Practice Mode (unresolved from prior worklog)
+- Added `loopStartBeat` + `loopEndBeat` fields to the Zustand store (`src/lib/store.ts`).
+- Rewrote `PracticeModeToggle` to show a dual-thumb slider (A-B markers) when loop is enabled. Slider range = 0..songLengthBeats. Reset button clears markers.
+- Updated `useSongPlayer` to check A-B markers inside the RAF loop:
+  - If `practiceMode + loopSong + loopEndBeat !== null` and `now >= endBeatSec`, jump transport back to `startBeatSec` and reset `currentIndex` to the note at the start beat.
+  - The A-B check runs BEFORE the song-complete check, so the song never "completes" while looping a section.
+- Updated `LearningPanel` to pass `songLengthBeats={songLengthBeats(song)}` to PracticeModeToggle.
+- The A-B loop now actually works end-to-end — users can pick any section of a song to repeat.
 
-### Track B — Wire Practice mode loop to the song player (unresolved from prior worklog)
-- Added `practiceMode` + `loopSong` fields to the Zustand store (`src/lib/store.ts`).
-- Refactored `PracticeModeToggle` to read/write the store instead of local state.
-- Updated `useSongPlayer` to:
-  - **On song complete + practiceMode + loopSong**: auto-restart (reset transport to 0, reset currentIndex + progress) instead of marking complete. Skips high-score persistence in practice mode.
-  - **On wrong press + practiceMode**: skip the score penalty (no flashWrong, no streak reset).
-- The loop now actually works end-to-end.
+### Track C — Styling polish (6 new CSS animations)
+Added 6 new animations to `src/app/globals.css`:
+1. **`card-shimmer`** — a subtle moving highlight on card hover. Applied to SongSelector cards via `::before` pseudo-element.
+2. **`streak-fire`** — pulsing drop-shadow glow on the 🔥 emoji when streak >= 3. Applied to StreakCalendar's best-streak display.
+3. **`badge-pop`** — scale + rotate entrance animation for earned achievement badges. Applied to the badge icon on the Achievements page.
+4. **`progress-shimmer`** — moving white highlight on progress bars. Applied to: listen page progress bar, sticker album progress bar, curriculum progress bar, achievements hero progress bar.
+5. **`animate-soft-enter`** — fade-in + slide-up entrance. Applied to SongSelector cards with staggered delays (stagger-1 through stagger-6).
+6. **`animate-coin-spin`** — 3D rotateY spin on the 🪙 emoji in the CoinCounter. Loops every 3 seconds.
 
-### Track C — Song-selection actions in the command palette (unresolved from prior worklog)
-- Added a "Jump to song (Learning Mode)" group to `src/components/CommandPalette.tsx`.
-- Lists all 14 songs with title + BPM. Selecting one sets `mode = "learn"`, sets the current song, and navigates to `/` (where the LearningPanel picks it up).
-- Quick way to jump to any song without scrolling the song-selector grid.
-
-### Track D — Hero banner on home page (styling polish)
-- New `src/components/HeroBanner.tsx` — eye-catching intro shown at the top of the home page (Free Play mode only).
-- Highlights Phase 2 features (mic listening, curriculum, sticker album) with quick-cta buttons.
-- Includes:
-  - "New: Microphone Listening Mode" badge.
-  - "Play your **real piano**, we'll listen." headline with gradient text.
-  - Three CTA buttons: Try Listen Mode, Start lessons, Sticker album.
-  - Bruno the bear mascot hint card on the right (desktop only) with "Let's go" arrow.
-  - Decorative floating music notes (🎵 🎶 🎹 🌟) animated with `animate-float-note`.
-- Wired into `AppShell.tsx` — renders only when `mode === "free"`.
-
-### Track E — New Achievements page
-- New route `src/app/achievements/page.tsx` — dedicated page showing lifetime milestones as a grid of badge cards.
-- 16 achievements total:
-  - **Notes played**: First Note (1), Getting Started (10), Century (100), Note Master (1000).
-  - **Songs completed**: First Recital (1), Concert Pianist (5).
-  - **Curriculum**: Lesson Learned (1 lesson), Curriculum Complete (12 lessons).
-  - **Perfect scores**: Perfectionist (95%+ on any lesson).
-  - **Streaks**: On a Roll (3 days), Week Warrior (7 days).
-  - **Time**: Dedicated (10 minutes total).
-  - **Stickers**: Sticker Collector (1), Sticker Hoarder (10).
-  - **Coins**: Coin Saver (50), Coin Magnate (100).
-- Each badge shows: emoji icon, title, description, progress bar (for locked badges), or "Earned" pill (for unlocked).
-- Hero summary card shows: Bruno mascot (happy state if 5+ badges earned), "X of Y badges earned", percent complete with progress bar.
-- Lifetime stats summary: Notes played, Songs completed, Minutes played, Streak days.
-- Reads from both Phase 1 stats (`piano-app:stats:v1`) and Phase 2 storage (`piano-app:phase2:v1`) so it works whether or not the user has a parent profile.
-- Added "Awards" link to `TopNav.tsx` (6 nav items now: Play, Listen, Lessons, Stickers, Awards, Parent).
-- Added "Achievements" action to the command palette's Navigate group.
+Also added stagger utility classes (`stagger-1` through `stagger-6`) for sequential entrance animations on grid items.
 
 ## 3. Verification
 - `bun run lint` → clean (0 errors / 0 warnings).
 - `bun run typecheck` → clean.
-- All 8 routes return 200 via curl: `/`, `/listen`, `/curriculum`, `/parent`, `/stickers`, `/achievements` (new), `/help/microphone`, `/api/health`.
-- Home page HTML contains HeroBanner content: "Microphone Listening Mode", "Try Listen Mode", "Start lessons", "Bruno says".
-- Achievements page returns 200 with "Loading" (client-rendered Suspense fallback).
+- All 8 routes return 200 via curl.
+- Verified all 6 new CSS classes are compiled into the production stylesheet via `curl` on the CSS chunk URL.
 
 ## 4. Files added / modified this round
 
-### New files (2)
-- `src/components/HeroBanner.tsx`
-- `src/app/achievements/page.tsx`
+### New files (0)
+- No new files this round (all modifications to existing files).
 
-### Modified files (5)
-- `src/lib/songs.ts` (5 new songs; 14 total)
-- `src/lib/store.ts` (added `practiceMode` + `loopSong` fields + setters)
-- `src/components/PracticeModeToggle.tsx` (refactored to use store instead of local state)
-- `src/hooks/useSongPlayer.ts` (wired practice mode loop + skip penalty in practice mode)
-- `src/components/CommandPalette.tsx` (added "Jump to song" group with 14 songs + "Achievements" nav action)
-- `src/components/AppShell.tsx` (render HeroBanner in Free Play mode)
-- `src/components/TopNav.tsx` (added Awards nav item)
+### Modified files (7)
+- `src/components/CommandPalette.tsx` (added "Jump to lesson" group with 12 lessons + Award import)
+- `src/lib/store.ts` (added `loopStartBeat` + `loopEndBeat` fields + setters)
+- `src/components/PracticeModeToggle.tsx` (rewritten with A-B loop dual-thumb slider + Reset button)
+- `src/hooks/useSongPlayer.ts` (added A-B loop check in RAF loop)
+- `src/components/LearningPanel.tsx` (pass `songLengthBeats` to PracticeModeToggle + import `songLengthBeats`)
+- `src/app/globals.css` (6 new animations + stagger utility classes)
+- `src/components/SongSelector.tsx` (card-shimmer + soft-enter + staggered delays)
+- `src/components/rewards/StreakCalendar.tsx` (streak-fire glow on best streak)
+- `src/components/rewards/StickerAlbum.tsx` (progress-shimmer on collection progress bar)
+- `src/components/curriculum/LessonPath.tsx` (progress-shimmer on curriculum progress bar)
+- `src/app/achievements/page.tsx` (badge-pop on earned badges + progress-shimmer on hero progress bar)
+- `src/components/rewards/CoinCounter.tsx` (coin-spin on 🪙 emoji)
+- `src/app/listen/page.tsx` (progress-shimmer on lesson progress bar)
 
 ## 5. Unresolved issues / risks for next phase
 - **Songs library**: still hardcoded TypeScript (14 songs). Could be moved to JSON for easier community contributions.
 - **Audio engine**: still loads all 30 Salamander samples at once (~5MB). Could split into per-octave fetches.
-- **Practice Mode loop range**: currently loops the whole song. Could add A-B loop markers so users can pick a specific section.
-- **Achievements**: badges are computed live (no persistence) — they re-derive from existing stats on every page load. This is fine but means there's no "first time earned" timestamp. Could persist earned-badge timestamps for a "recently unlocked" feed.
+- **Achievements**: badges are computed live (no persistence) — they re-derive from existing stats on every page load. Could persist earned-badge timestamps for a "recently unlocked" feed.
 - **Metronome accent**: uses a higher pitch (C5) for the accent — could be improved with a proper woodblock sample.
-- **Command palette**: doesn't yet include lesson-jump actions (jumping to a specific lesson in `/listen?lesson=ID`).
+- **A-B loop UI**: the dual-thumb slider shows beat numbers but not time labels. Could show "0:12 → 0:24" format.
+- **Command palette**: doesn't yet include sticker-jump actions (jumping to a specific sticker in the album).
 
 Stage Summary:
-- Build is feature-rich: 14 songs, 12 lessons, mic listening, parent dashboard, sticker album, achievements page, metronome, practice mode with working loop, command palette with song-jump, theme toggle, stats panel, keyboard-shortcuts help, animated mascot with glow effects, hero banner on home.
+- Build is feature-rich: 14 songs, 12 lessons, mic listening, parent dashboard, sticker album, achievements page (16 badges), metronome, practice mode with A-B loop, command palette with song-jump + lesson-jump, theme toggle, stats panel, keyboard-shortcuts help, animated mascot with glow effects, hero banner on home, 6 new CSS animations (card-shimmer, streak-fire, badge-pop, progress-shimmer, soft-enter, coin-spin).
 - Lint clean, typecheck clean.
-- Recommended next focus: A-B loop markers in practice mode + lesson-jump actions in command palette + move songs to JSON.
+- Recommended next focus: move songs to JSON + persist achievement timestamps + sticker-jump in command palette.

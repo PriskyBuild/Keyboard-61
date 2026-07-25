@@ -73,7 +73,7 @@ export function StickerAlbum({
       {/* Progress bar */}
       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div
-          className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-[width] duration-500"
+          className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-[width] duration-500 progress-shimmer"
           style={{ width: `${(earned.length / total) * 100}%` }}
         />
       </div>

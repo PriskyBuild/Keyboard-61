@@ -307,7 +307,7 @@ export default function AchievementsPage() {
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
-              className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-[width] duration-700"
+              className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-[width] duration-700 progress-shimmer"
               style={{ width: `${percentEarned}%` }}
             />
           </div>
@@ -353,7 +353,7 @@ export default function AchievementsPage() {
                   className={cn(
                     "grid h-16 w-16 place-items-center rounded-full text-3xl shadow-md transition-transform",
                     earnedBadge
-                      ? `bg-gradient-to-br ${gradientPart} text-white`
+                      ? `bg-gradient-to-br ${gradientPart} text-white animate-badge-pop`
                       : "bg-slate-200 grayscale dark:bg-slate-700",
                     earnedBadge && "hover:scale-110",
                   )}

@@ -326,7 +326,7 @@ function ListenPageInner() {
         aria-valuemax={100}
       >
         <div
-          className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400 transition-[width] duration-300"
+          className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400 transition-[width] duration-300 progress-shimmer"
           style={{ width: `${Math.round(engine.progress * 100)}%` }}
         />
       </div>

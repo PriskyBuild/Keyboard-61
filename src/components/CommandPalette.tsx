@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/command";
 import { usePianoStore } from "@/lib/store";
 import { SONGS } from "@/lib/songs";
+import { CURRICULUM } from "@/lib/curriculum";
 import { useTheme } from "next-themes";
 import {
   Music2,
@@ -185,6 +186,29 @@ export function CommandPalette() {
               <span className="flex-1 truncate">{song.title}</span>
               <span className="text-[10px] text-muted-foreground">
                 {song.bpm} BPM
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Jump to lesson (Listen Mode)">
+          {CURRICULUM.map((lesson) => (
+            <CommandItem
+              key={lesson.id}
+              onSelect={() => {
+                setOpen(false);
+                router.push(`/listen?lesson=${lesson.id}`);
+              }}
+              className="gap-2"
+            >
+              <GraduationCap className="h-4 w-4 text-emerald-500" />
+              <span className="flex-1 truncate">
+                L{lesson.number}: {lesson.title}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {lesson.stickerEmoji}
               </span>
             </CommandItem>
           ))}

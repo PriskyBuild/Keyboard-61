@@ -29,7 +29,7 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {SONGS.map((song) => {
+      {SONGS.map((song, idx) => {
         const isSelected =
           selectedId === song.id || current?.id === song.id;
         const noteCount = song.notes.length;
@@ -48,7 +48,8 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
             onClick={() => onSelect(song)}
             aria-pressed={isSelected}
             className={cn(
-              "group relative flex flex-col gap-2 overflow-hidden rounded-2xl border bg-white/80 p-4 text-left shadow-sm card-lift",
+              "group relative flex flex-col gap-2 overflow-hidden rounded-2xl border bg-white/80 p-4 text-left shadow-sm card-lift card-shimmer animate-soft-enter",
+              `stagger-${(idx % 6) + 1}`,
               isSelected
                 ? "border-amber-400 ring-2 ring-amber-300/50 dark:bg-amber-500/5"
                 : "border-slate-200/60 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/70",

@@ -273,6 +273,39 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
           const next = noteQueueRef.current[currentIndexRef.current];
           setNextNote(next ? next.note : null);
 
+          // A-B loop check (practice mode + loop on + markers set).
+          // If we've reached the B marker, jump back to the A marker.
+          const abState = usePianoStore.getState();
+          if (
+            abState.practiceMode &&
+            abState.loopSong &&
+            song &&
+            abState.loopEndBeat !== null
+          ) {
+            const beatsPerSecond = song.bpm / 60 / tempoRef.current;
+            const endBeatSec =
+              abState.loopEndBeat / beatsPerSecond;
+            if (now >= endBeatSec) {
+              const startBeat = abState.loopStartBeat ?? 0;
+              const startSec = startBeat / beatsPerSecond;
+              try {
+                const transport = await audio.getTransport();
+                transport.seconds = startSec;
+                // Find the note queue index for the start beat.
+                const startIdx = noteQueueRef.current.findIndex(
+                  (n) => n.startSec >= startSec - 0.01,
+                );
+                currentIndexRef.current = startIdx >= 0 ? startIdx : 0;
+                setProgress(currentIndexRef.current / noteQueueRef.current.length);
+                setNextNote(
+                  noteQueueRef.current[currentIndexRef.current]?.note ?? null,
+                );
+              } catch {
+                /* noop */
+              }
+            }
+          }
+
           // Song complete?
           if (now >= totalDurationSec / tempoRef.current + 0.5) {
             // Practice mode + loop: auto-restart instead of completing.

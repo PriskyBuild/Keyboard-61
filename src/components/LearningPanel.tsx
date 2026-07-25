@@ -12,7 +12,7 @@ import { SongSelector } from "@/components/SongSelector";
 import { Scoreboard } from "@/components/Scoreboard";
 import { useSongPlayer } from "@/hooks/useSongPlayer";
 import { usePianoStore } from "@/lib/store";
-import { SONGS, findSongById } from "@/lib/songs";
+import { SONGS, findSongById, songLengthBeats } from "@/lib/songs";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { PracticeModeToggle } from "@/components/PracticeModeToggle";
@@ -154,6 +154,7 @@ export function LearningPanel() {
               <PracticeModeToggle
                 isPlaying={player.isPlaying}
                 onRestart={handleReplay}
+                songLengthBeats={songLengthBeats(song)}
               />
 
               {/* Song title + back */}

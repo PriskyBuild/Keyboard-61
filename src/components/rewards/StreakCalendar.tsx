@@ -45,7 +45,9 @@ export function StreakCalendar({ streak, className }: StreakCalendarProps) {
             Best
           </div>
           <div className="mt-0.5 text-lg font-bold tabular-nums">
-            {streak.best} 🔥
+            <span className={streak.best >= 3 ? "streak-fire" : ""}>
+              {streak.best} 🔥
+            </span>
           </div>
         </div>
       </div>

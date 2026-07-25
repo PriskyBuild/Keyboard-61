@@ -37,7 +37,7 @@ export function LessonPath({
       {/* Progress bar */}
       <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div
-          className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-[width] duration-500"
+          className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-[width] duration-500 progress-shimmer"
           style={{
             width: `${(completedLessonIds.size / lessons.length) * 100}%`,
           }}
