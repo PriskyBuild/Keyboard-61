@@ -230,3 +230,19 @@
 - src/components/parent/ProgressChart.tsx: recharts per-child chart.
 - src/components/parent/SettingsPanel.tsx: tolerance, time limit, octave-forgiveness.
 - Export/Import JSON.
+
+### P2-C7 — Parent dashboard ✅ DONE
+- src/hooks/useParentPin.ts: PIN management hook. PinGateState = no-pin | locked | unlocked | setting. verify/set/change/remove/lock methods. 3-attempt throttle with 1-second delay (slow brute force). Lazy initial hasPin from localStorage (no setState-in-effect).
+- src/components/parent/PinGate.tsx: 4-digit PIN entry pad with auto-submit on 4 digits, dotted indicators, numeric keypad (1-9 + 0 + Delete), throttle UI. SetupPad (2-stage confirm) for first-run, EntryPad for returning users. ShieldCheck privacy note ("PIN is hashed with SHA-256").
+- src/components/parent/ProfileSwitcher.tsx: up to 4 profiles with avatar + name + age + time-limit display. Switch + Remove buttons. CreateProfileDialog with name input + 8-avatar picker (bear/cat/penguin/fox/bunny/lion/panda/frog) + age input.
+- src/components/parent/ProgressChart.tsx: recharts BarChart with 12 lesson bars colored by accuracy (gray=not attempted, emerald >=90%, amber >=70%, orange <70%). 4 stat cards (Lessons done / Avg accuracy / Minutes practised / Coins earned). Tooltip shows lesson title + accuracy.
+- src/components/parent/SettingsPanel.tsx: Pitch tolerance slider (10-100 cents), Octave forgiveness switch, Daily time-limit override slider (0-60 min). Export progress as JSON download. Import via file picker. Reset all data with confirmation.
+- Rewrote /parent page: PinGate wraps everything. Once unlocked, shows header + Lock button + ProfileSwitcher + ProgressChart (for active profile) + SettingsPanel + quick links (View lessons, Sticker album, Back to app).
+- Verified via agent-browser: setup PIN 1234 → confirm 1234 → dashboard unlocks. Created "Alex" profile (🐻 avatar, age 7) → progress chart renders with 4 stat cards + 12-lesson bar chart + Settings panel + quick links. Export/Import/Reset all buttons visible. Lint + typecheck clean.
+
+### Next — P2-C8: Persistence & polish
+- src/components/onboarding/CalibrationFlow.tsx: "play middle C three times" first-run flow.
+- Wire CalibrationFlow into /listen page on first visit.
+- Wire lesson progress persistence: when lesson engine fires `complete`, save to localStorage + award stickers + coins + streak.
+- Wire /listen to read ?lesson=ID query param.
+- bun run build green.
