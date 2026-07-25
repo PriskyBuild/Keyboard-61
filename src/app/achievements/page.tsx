@@ -20,6 +20,11 @@ import {
   getProfileProgress,
   type Phase2Storage,
 } from "@/lib/storage";
+import {
+  loadAchievementTimestamps,
+  persistNewAchievements,
+  formatRelativeTime,
+} from "@/lib/achievement-timestamps";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -65,6 +70,49 @@ export default function AchievementsPage() {
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  // Persist timestamps for newly-earned achievements + load existing ones.
+  // Declared before the early return so hooks are always called in order.
+  const [timestamps, setTimestamps] = useState<Record<string, string>>({});
+  useEffect(() => {
+    // Compute earned IDs from current stats + storage.
+    const s = loadStats();
+    const st = loadPhase2();
+    const ap = getActiveProfile(st);
+    const prog = ap ? getProfileProgress(st, ap.id) : null;
+    const lessonsDone = prog
+      ? Object.values(prog.lessons).filter((l) => l.completed).length
+      : 0;
+    const stickers = prog?.stickers.length ?? 0;
+    const streaks = prog?.streakDays.length ?? 0;
+    const perfects = prog
+      ? Object.values(prog.lessons).filter((l) => l.bestAccuracy >= 95).length
+      : 0;
+    const coins = prog?.coins ?? 0;
+
+    const earnedIdSet = new Set<string>();
+    if (s.totalNotesPlayed >= 1) earnedIdSet.add("first-note");
+    if (s.totalNotesPlayed >= 10) earnedIdSet.add("ten-notes");
+    if (s.totalNotesPlayed >= 100) earnedIdSet.add("hundred-notes");
+    if (s.totalNotesPlayed >= 1000) earnedIdSet.add("thousand-notes");
+    if (s.songsCompleted >= 1) earnedIdSet.add("first-song");
+    if (s.songsCompleted >= 5) earnedIdSet.add("five-songs");
+    if (lessonsDone >= 1) earnedIdSet.add("first-lesson");
+    if (lessonsDone >= 12) earnedIdSet.add("all-lessons");
+    if (perfects >= 1) earnedIdSet.add("perfect-score");
+    if (streaks >= 3) earnedIdSet.add("streak-3");
+    if (streaks >= 7) earnedIdSet.add("streak-7");
+    if (s.secondsPlayed >= 600) earnedIdSet.add("ten-minutes");
+    if (stickers >= 1) earnedIdSet.add("first-sticker");
+    if (stickers >= 10) earnedIdSet.add("ten-stickers");
+    if (coins >= 50) earnedIdSet.add("fifty-coins");
+    if (coins >= 100) earnedIdSet.add("hundred-coins");
+
+    persistNewAchievements(earnedIdSet);
+    // Schedule the timestamp load via setTimeout so setState is async.
+    const id = window.setTimeout(() => setTimestamps(loadAchievementTimestamps()), 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   if (!stats || !storage) {
@@ -257,6 +305,18 @@ export default function AchievementsPage() {
   const total = achievements.length;
   const percentEarned = Math.round((earned.length / total) * 100);
 
+  // Build the "Recently earned" feed — sorted by timestamp desc, top 5.
+  const recentFeed = earned
+    .map((a) => ({
+      ...a,
+      earnedAt: timestamps[a.id] ?? null,
+    }))
+    .filter((a) => a.earnedAt !== null)
+    .sort((a, b) =>
+      (b.earnedAt ?? "").localeCompare(a.earnedAt ?? ""),
+    )
+    .slice(0, 5);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-3 py-4 sm:px-6 sm:py-6">
       <header className="flex items-center justify-between gap-3">
@@ -321,6 +381,44 @@ export default function AchievementsPage() {
         <StatCard icon={<Clock className="h-4 w-4" />} label="Minutes played" value={`${Math.round(stats.secondsPlayed / 60)}`} tone="slate" />
         <StatCard icon={<Flame className="h-4 w-4" />} label="Streak days" value={`${streakDays}`} tone="rose" />
       </section>
+
+      {/* Recently earned feed */}
+      {recentFeed.length > 0 ? (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Recently earned
+          </h2>
+          <div className="flex flex-col gap-2">
+            {recentFeed.map((a) => {
+              const Icon = a.icon;
+              return (
+                <div
+                  key={a.id}
+                  className="flex items-center gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-3 dark:border-amber-500/20 dark:from-amber-500/5 dark:to-slate-900"
+                >
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-xl text-white shadow">
+                    {a.emoji}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold">
+                      {a.title}
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {a.description}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                      <Icon className="h-2.5 w-2.5" />
+                      {formatRelativeTime(a.earnedAt!)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {/* Badges grid */}
       <section>
@@ -393,9 +491,43 @@ export default function AchievementsPage() {
         </div>
       </section>
 
-      <p className="mt-2 text-center text-xs text-muted-foreground">
-        Keep practising to unlock more badges!
-      </p>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-center text-xs text-muted-foreground">
+          Keep practising to unlock more badges!
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => {
+            const text = `🎹 Piano Learning App — My Progress\n\n` +
+              `🏆 ${earned.length}/${total} badges earned (${percentEarned}%)\n` +
+              `🎵 ${stats.totalNotesPlayed.toLocaleString()} notes played\n` +
+              `🎶 ${stats.songsCompleted} songs completed\n` +
+              `⏱ ${Math.round(stats.secondsPlayed / 60)} minutes practised\n` +
+              `🔥 ${streakDays} streak days\n` +
+              `🪙 ${progress?.coins ?? 0} coins\n\n` +
+              `Play at: https://piano-learn.vercel.app`;
+            try {
+              navigator.clipboard.writeText(text);
+              // Show a brief "Copied!" confirmation.
+              const btn = document.activeElement as HTMLButtonElement;
+              if (btn) {
+                const orig = btn.textContent;
+                btn.textContent = "✓ Copied!";
+                window.setTimeout(() => {
+                  btn.textContent = orig;
+                }, 1500);
+              }
+            } catch {
+              /* clipboard API unavailable */
+            }
+          }}
+        >
+          <Trophy className="h-3.5 w-3.5" />
+          Share progress
+        </Button>
+      </div>
     </main>
   );
 }
