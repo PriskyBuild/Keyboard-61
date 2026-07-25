@@ -83,7 +83,7 @@ export default function ListenPage() {
         ) : null}
       </section>
 
-      {/* Live readout — for P2-C1/C2 smoke testing */}
+      {/* Live readout — for P2-C1/C2/C3 smoke testing */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
           <Activity className="h-4 w-4" />
@@ -94,6 +94,27 @@ export default function ListenPage() {
           <Readout label="Confidence" value={`${(mic.confidence * 100).toFixed(0)}%`} />
           <Readout label="RMS" value={mic.rms.toFixed(4)} />
           <Readout label="Frame" value={`${mic.frame}`} />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Readout
+            label="Detected note"
+            value={mic.detectedNote ?? "—"}
+            tone={mic.detectedNote ? "emerald" : "slate"}
+          />
+          <Readout
+            label="Cents"
+            value={mic.detectedNote ? `${mic.detectedCents > 0 ? "+" : ""}${mic.detectedCents}` : "—"}
+          />
+          <Readout
+            label="Onset"
+            value={mic.onset ? "✓ yes" : "—"}
+            tone={mic.onset ? "emerald" : "slate"}
+          />
+          <Readout
+            label="Silent"
+            value={mic.silent ? "✓ silent" : "—"}
+            tone={mic.silent ? "amber" : "slate"}
+          />
         </div>
         <div className="mt-4 text-sm text-muted-foreground">
           Last clear pitch:{" "}
@@ -116,13 +137,29 @@ export default function ListenPage() {
   );
 }
 
-function Readout({ label, value }: { label: string; value: string }) {
+function Readout({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "emerald" | "amber" | "slate";
+}) {
+  const toneClasses: Record<string, string> = {
+    default: "",
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    amber: "text-amber-600 dark:text-amber-400",
+    slate: "text-slate-500 dark:text-slate-400",
+  };
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/50">
       <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
-      <div className="mt-0.5 font-mono text-lg font-semibold tabular-nums">
+      <div
+        className={`mt-0.5 font-mono text-lg font-semibold tabular-nums ${toneClasses[tone]}`}
+      >
         {value}
       </div>
     </div>

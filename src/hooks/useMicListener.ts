@@ -29,6 +29,13 @@ import {
   type PitchMessage,
   type WorkletBridge,
 } from "@/lib/mic/audio-worklet-bridge";
+import {
+  createMatcherState,
+  matchNote,
+  type MatchResult,
+  type MatcherState,
+} from "@/lib/mic/note-matcher";
+import { DEFAULT_NOISE_FLOOR } from "@/lib/mic/calibration";
 
 export interface MicListenerState {
   /** True when the mic is actively capturing. */
@@ -47,6 +54,16 @@ export interface MicListenerState {
   supported: boolean;
   /** Monotonic frame counter for debugging. */
   frame: number;
+  /** Detected note name (e.g. "C4") after debounce + onset, or null. */
+  detectedNote: string | null;
+  /** Cents offset of the detected note (-50..+50). */
+  detectedCents: number;
+  /** True if the latest frame was a "loud enough" onset (RMS > noise floor). */
+  onset: boolean;
+  /** True if the latest frame was silent (below noise floor). */
+  silent: boolean;
+  /** Latest match result (for debugging / advanced UI). */
+  match: MatchResult | null;
 }
 
 export interface UseMicListener extends MicListenerState {
@@ -54,6 +71,11 @@ export interface UseMicListener extends MicListenerState {
   start: () => Promise<void>;
   /** Stop capturing. Idempotent. */
   stop: () => void;
+  /** Set the expected note (for octave-guard correction). Pass null for free
+   *  listening. */
+  setExpectedNote: (note: string | null) => void;
+  /** Set the noise floor (RMS threshold for onset detection). Default 0.02. */
+  setNoiseFloor: (rms: number) => void;
 }
 
 // Compute the initial `supported` flag once. On the server this is false;
@@ -74,6 +96,11 @@ const INITIAL: MicListenerState = {
   error: null,
   supported: INITIAL_SUPPORTED,
   frame: 0,
+  detectedNote: null,
+  detectedCents: 0,
+  onset: false,
+  silent: true,
+  match: null,
 };
 
 export function useMicListener(): UseMicListener {
@@ -82,6 +109,12 @@ export function useMicListener(): UseMicListener {
   // Refs so we don't re-bind listeners on every state change.
   const handleRef = useRef<MicCaptureHandle | null>(null);
   const bridgeRef = useRef<WorkletBridge | null>(null);
+
+  // Matcher state + tunables (kept in refs so the worklet callback always
+  // reads the latest values without needing to re-subscribe).
+  const matcherStateRef = useRef<MatcherState>(createMatcherState());
+  const expectedNoteRef = useRef<string | null>(null);
+  const noiseFloorRef = useRef<number>(DEFAULT_NOISE_FLOOR);
 
   const stop = useCallback(() => {
     try {
@@ -96,6 +129,8 @@ export function useMicListener(): UseMicListener {
       /* noop */
     }
     handleRef.current = null;
+    // Reset matcher state so the next start is clean.
+    matcherStateRef.current = createMatcherState();
     setState((s) => ({
       ...s,
       listening: false,
@@ -103,7 +138,20 @@ export function useMicListener(): UseMicListener {
       confidence: 0,
       rms: 0,
       usingFallback: false,
+      detectedNote: null,
+      detectedCents: 0,
+      onset: false,
+      silent: true,
+      match: null,
     }));
+  }, []);
+
+  const setExpectedNote = useCallback((note: string | null) => {
+    expectedNoteRef.current = note;
+  }, []);
+
+  const setNoiseFloor = useCallback((rms: number) => {
+    noiseFloorRef.current = Math.max(0.001, Math.min(0.5, rms));
   }, []);
 
   const start = useCallback(async () => {
@@ -149,7 +197,17 @@ export function useMicListener(): UseMicListener {
     }
     bridgeRef.current = bridge;
 
+    // Reset matcher state for a fresh listening session.
+    matcherStateRef.current = createMatcherState();
+
     bridge.subscribe((msg: PitchMessage) => {
+      // Run the matcher on this frame.
+      const match = matchNote(
+        { freq: msg.freq, confidence: msg.confidence, rms: msg.rms },
+        matcherStateRef.current,
+        noiseFloorRef.current,
+        expectedNoteRef.current,
+      );
       setState((s) => ({
         ...s,
         listening: true,
@@ -157,6 +215,11 @@ export function useMicListener(): UseMicListener {
         confidence: msg.confidence,
         rms: msg.rms,
         frame: msg.frame,
+        detectedNote: match.note,
+        detectedCents: match.cents,
+        onset: match.onset,
+        silent: match.silent,
+        match,
       }));
     });
 
@@ -220,5 +283,7 @@ export function useMicListener(): UseMicListener {
     ...state,
     start,
     stop,
+    setExpectedNote,
+    setNoiseFloor,
   };
 }

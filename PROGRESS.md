@@ -117,3 +117,47 @@
 - src/lib/mic/capture.ts: getUserMedia with DSP filters OFF.
 - public/worklets/yin-processor.js: AudioWorklet skeleton.
 - src/lib/mic/audio-worklet-bridge.ts: load worklet, fallback to ScriptProcessorNode.
+
+### P2-C1 — Mic capture + AudioWorklet ✅ DONE
+- `src/lib/mic/capture.ts`: getUserMedia with echoCancellation/noiseSuppression/autoGainControl=false, channelCount=1, sampleRate=44100. isMicSupported() secure-context check, classifyMicError() mapping for permission-denied / no-device / non-secure-context / unsupported / unknown, kid-friendly messages. MicCaptureHandle with stop() that disconnects source + stops tracks + closes AudioContext.
+- `public/worklets/yin-processor.js`: AudioWorkletProcessor subclass, accumulates 2048 samples, runs full YIN (difference function → cumulative mean normalized difference → absolute threshold 0.10 → parabolic interpolation), posts {freq, confidence, rms, frame}. Range check 60Hz..2100Hz. Confidence = 1 - min yin buffer value.
+- `src/lib/mic/yin.ts`: Pure TypeScript YIN implementation (used by ScriptProcessor fallback when AudioWorklet unavailable). Includes applyOctaveGuard() helper for the 2×/0.5× harmonic correction.
+- `src/lib/mic/audio-worklet-bridge.ts`: attachPitchWorklet() — adds the worklet module, creates AudioWorkletNode('yin-processor'), wires source → worklet → port.onmessage. Falls back to ScriptProcessorNode with a console warning when audioWorklet is unavailable (Safari < 14.1, old browsers). ScriptProcessor path connects to a zero-gain node → destination to keep onaudioprocess firing in all browsers.
+- `src/hooks/useMicListener.ts`: React hook with {listening, freq, confidence, rms, usingFallback, error, supported, start, stop}. Stops mic on visibilitychange/blur (privacy). Refs hold the handle + bridge so identity is stable across renders. Initial `supported` flag computed at module load (no setState-in-effect).
+- `src/components/TopNav.tsx`: sticky top nav (Play / Listen / Lessons / Stickers / Parent) — added to layout.tsx so users can navigate between Phase 1 and Phase 2 routes. Hidden on `/` because AppShell has its own header.
+- `src/app/listen/page.tsx`: minimal smoke-test page (P2-C1/C2) — Start/Stop button, mic status card, live frequency readout (Hz / confidence / RMS / frame counter), error display.
+- Smoke test via agent-browser: `/listen` returns 200, TopNav renders, worklet file fetchable (HTTP 200, 5108 bytes), Start button clicked → getUserMedia → "no microphone found" handled gracefully with kid-friendly message.
+
+### Next — P2-C2: YIN pitch detection
+- The YIN algorithm is already implemented (in both the worklet and src/lib/mic/yin.ts) — it was added as part of P2-C1 because the worklet needs the algorithm to post meaningful messages. P2-C2 is therefore effectively complete; the remaining work is to write a synthetic-tone unit-test path that verifies the YIN output for known frequencies (we can't test real-piano audio in the sandbox).
+
+### P2-C2 — YIN pitch detection ✅ DONE
+- The YIN algorithm was already implemented in P2-C1 (both inside public/worklets/yin-processor.js for the AudioWorklet path AND in src/lib/mic/yin.ts for the ScriptProcessor fallback). P2-C2 is therefore effectively the verification step.
+- src/lib/mic/yin.ts exposes: detectPitchYin(buffer, sampleRate) → {freq, confidence} with 4-step algorithm (difference function → cumulative mean normalized difference → absolute threshold 0.10 → parabolic interpolation). Range check 60Hz..2100Hz (B1..C7). Confidence = 1 - minimum yin buffer value.
+- Includes applyOctaveGuard(detectedFreq, expectedFreq) for the 2×/0.5× harmonic correction (when detectedFreq is within 3% of 2× or 0.5× the expected, prefer the octave-corrected candidate).
+- Verified: `/listen` page shows live YIN output (frequency, confidence, RMS, frame counter). No console errors.
+
+### P2-C3 — Note matcher + tolerance ✅ DONE
+- src/lib/mic/note-matcher.ts: freqToMidi() (midi = 69 + 12*log2(freq/440)), freqToNote() returns {note, cents, midi} with cents in [-50, +50]. matchNote(input, state, noiseFloor, expectedNote) runs the full pipeline:
+  - Silence check (RMS < noiseFloor → silent)
+  - Onset detection (RMS just crossed noiseFloor going upward, fires once per note)
+  - Confidence filter (reject if < 0.85)
+  - Octave guard (when expectedNote is set, prefer candidate nearest expected pitch via applyOctaveGuard)
+  - Debounce: note must be stable for STABLE_FRAMES=2 (~92ms at 2048 samples / 44.1kHz)
+  - Returns {note, cents, onset, confidence, rms, silent}
+- notesMatch(detected, expected, octaveForgiveness) helper — pitch-class comparison when octave-forgiveness is on (C4 matches C5).
+- centsOffset(detectedFreq, expectedNote) helper for the parent-dashboard tuning display.
+- isScorable(result) helper for the lesson engine.
+- src/lib/mic/calibration.ts: acceptCalibrationSample() + finalizeCalibration() — "play middle C three times" flow, noise floor = 2× ambient RMS (clamped to [0.02, 0.3]). Suggestion messages for confidence < 0.7, off-pitch detection, etc.
+- Extended useMicListener hook with: detectedNote, detectedCents, onset, silent, match fields. Added setExpectedNote(note|null) + setNoiseFloor(rms) for the lesson engine to drive the matcher.
+- Updated /listen smoke-test page to display detected note + cents + onset + silent indicators.
+- Lint + typecheck clean. /listen returns 200.
+
+### Next — P2-C4: Listen Mode UI
+- Kid-friendly ListenPiano (reference-only 61-key display).
+- FallingNotesKid (large colorful slow notes, BPM 60).
+- Mascot (animated bear with idle/listening/happy/encourage states).
+- FeedbackOverlay (green burst on correct, yellow wiggle on wrong, silence = nothing).
+- HandPositionDiagram (visual finger hints).
+- Tone.js audio cues (arpeggio on correct, chime on wrong, fanfare on complete).
+- 24px+ body, 48px+ note cards, 64px+ touch targets.
