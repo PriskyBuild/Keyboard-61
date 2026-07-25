@@ -213,3 +213,20 @@
 - src/app/stickers/page.tsx: full sticker album (earned vs locked).
 - StickerAlbum + CoinCounter + StreakCalendar components.
 - canvas-confetti burst on lesson complete (already wired in CelebrationScreen).
+
+### P2-C6 — Gamification & rewards ✅ DONE
+- src/lib/streaks.ts: 7-day streak helpers. computeStreak(streakDays) returns {current, best, alive, completedToday, calendar, graceActive}. 1-day grace: if yesterday was completed but today wasn't yet, streak stays alive (graceActive=true). markTodayComplete() idempotent. todayDateStr/daysAgoStr helpers for local-time YYYY-MM-DD strings.
+- src/lib/rewards.ts: computeLessonRewards(lessonStickerId, ownedSet, lessonCoins, accuracy, currentStreak) returns {stickerId, sticker, stickerIsNew, coinsEarned, reasons}. Awards: lesson sticker on completion (+5 coins bonus for perfect, +5/10 coins for 7-day streak, 💯 sticker for perfect, 🔥 sticker for 7-day). coinPerCorrectNote()=1. stickersByTheme() grouping helper.
+- src/components/rewards/CoinCounter.tsx: animated coin balance. Eases the count up over 400ms (ease-out cubic) when balance rises. Pop "+N" indicator via animate-coin-pop CSS. 3 sizes (sm/md/lg).
+- src/components/rewards/StreakCalendar.tsx: 7-day visual calendar (oldest → today, left → right). Completed days = filled amber ✓, today incomplete = dashed pulsing border, grace day = pulsing ring. Shows current + best streak counts. Footer message adapts to state (completed today / grace / not yet started).
+- src/components/rewards/StickerAlbum.tsx: themed grid (Lesson Stickers / Animal Friends / Instruments / Nature / Achievements). Earned stickers show emoji + name + rarity ring (rare=purple, legendary=amber+star). Locked stickers show ❓ + greyscale. Collection header shows progress (X/Y) + preview of last 5 earned.
+- Rewrote /stickers page: full layout with header, top row (coin counter card + streak calendar), sticker album (5 themed sections). Lazy initial state from localStorage. Auto-refresh on window focus.
+- Verified via agent-browser with test profile (1 lesson completed, 25 coins, 3-day streak): /stickers renders coin counter (🪙 25), streak calendar (3 days, BEST 3 🔥, ✓✓✓ on last 3 days, "Great job today!" message), sticker album (1/36 collected, 5 themed sections with locked ❓ placeholders). Lint + typecheck clean.
+
+### Next — P2-C7: Parent dashboard
+- src/app/parent/page.tsx: full PIN gate + profile switcher + progress charts + settings.
+- src/components/parent/PinGate.tsx: 4-digit PIN entry + setup.
+- src/components/parent/ProfileSwitcher.tsx: up to 4 profiles, create/switch.
+- src/components/parent/ProgressChart.tsx: recharts per-child chart.
+- src/components/parent/SettingsPanel.tsx: tolerance, time limit, octave-forgiveness.
+- Export/Import JSON.
