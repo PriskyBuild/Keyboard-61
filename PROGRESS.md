@@ -103,3 +103,17 @@
   - **Short viewport 1280×400**: footer pushed down naturally (totalH=586, viewportH=400, scrolls).
   - **Toggles**: Note names → key shows "C4"; Key hints → key shows "A"; Octave up → hint moves from C4 to C5.
   - **Computer keyboard**: dispatching `keydown` for "a" → C5 added to activeNotes; `keyup` → removed.
+
+## Phase 2 — Microphone Listening Mode + Kids Curriculum + Parent Dashboard
+
+### P2-C0 — Plan & inventory ✅ DONE
+- Read every existing file under src/app/, src/components/, src/lib/, src/hooks/.
+- Inventoried: 61-key Piano (Key/WhiteKey/BlackKey), Tone.js engine (audio.ts), Zustand store with localStorage persistence (persistence.ts + store.ts), 9-song library (songs.ts), useAudioEngine + useKeyboardInput + useSongPlayer hooks, Phase-1 Free Play + Learning Mode UI.
+- Installed `canvas-confetti@1.9.4`. `recharts` already present.
+- Wrote PHASE2_PLAN.md with full architecture inventory, 10 architectural decisions (D1-D10), and a 9-checkpoint plan (P2-C0 → P2-C9).
+- Key decisions: separate AudioContext for mic (no Tone.js contamination), AudioWorklet in public/worklets/ (Next.js serves /public at root), YIN at 2048 samples ~46ms latency, 4-digit PIN hashed with SHA-256 via crypto.subtle, multi-profile localStorage keyed by profileId, single bear mascot with 4 states, never-punitive feedback (green/yellow only), session timer per-day per-profile.
+
+### Next — P2-C1: Mic capture + AudioWorklet
+- src/lib/mic/capture.ts: getUserMedia with DSP filters OFF.
+- public/worklets/yin-processor.js: AudioWorklet skeleton.
+- src/lib/mic/audio-worklet-bridge.ts: load worklet, fallback to ScriptProcessorNode.
