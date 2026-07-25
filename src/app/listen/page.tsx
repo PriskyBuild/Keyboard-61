@@ -209,6 +209,87 @@ function ListenPageInner() {
         <Mascot state={mascotState} size={140} message={engine.mascotMessage} />
       </div>
 
+      {/* Score / Accuracy / Streak + Play / Restart panel — sits ABOVE the
+          visualizer so the visualizer directly touches the piano keys below. */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 sm:flex-row sm:items-center sm:justify-between">
+        {/* Left: score / accuracy / streak chips */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          <StatChip
+            label="Note"
+            value={`${engine.currentIndex + 1} / ${engine.total}`}
+          />
+          <StatChip
+            label="Hits"
+            value={`${engine.hits}`}
+            tone="emerald"
+          />
+          <StatChip
+            label="Accuracy"
+            value={`${engine.accuracy}%`}
+            tone={
+              engine.accuracy >= 80
+                ? "emerald"
+                : engine.accuracy >= 50
+                  ? "amber"
+                  : "slate"
+            }
+          />
+          <StatChip
+            label="Progress"
+            value={`${Math.round(engine.progress * 100)}%`}
+          />
+        </div>
+        {/* Right: transport buttons (Play / Restart) */}
+        <div className="flex items-center gap-2">
+          {engine.mic.listening && !engine.complete ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => engine.reset()}
+              className="gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restart
+            </Button>
+          ) : null}
+          {!engine.complete ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                if (engine.mic.listening) {
+                  engine.reset();
+                } else {
+                  setShowPermission(true);
+                }
+              }}
+              disabled={!engine.mic.supported && !engine.mic.listening}
+              className="gap-1.5"
+            >
+              {engine.mic.listening ? (
+                <>
+                  <MicOff className="h-4 w-4" /> Stop
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" /> Play
+                </>
+              )}
+            </Button>
+          ) : null}
+          {engine.mic.listening ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </span>
+              Listening
+            </span>
+          ) : null}
+        </div>
+      </div>
+
       {/* Falling-notes visualizer + Reference piano — wrapped in a single
           bordered container with NO gap between them so notes visually fall
           directly onto the matching keys. Both elements share the same
@@ -235,31 +316,8 @@ function ListenPageInner() {
       {/* Hand position diagram */}
       <HandPositionDiagram hand={engine.expectedHand} finger={engine.expectedFinger} />
 
-      {/* Progress + score row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ProgressCard
-          label="Note"
-          value={`${engine.currentIndex + 1} / ${engine.total}`}
-        />
-        <ProgressCard label="Hits" value={`${engine.hits}`} tone="emerald" />
-        <ProgressCard
-          label="Accuracy"
-          value={`${engine.accuracy}%`}
-          tone={
-            engine.accuracy >= 80
-              ? "emerald"
-              : engine.accuracy >= 50
-                ? "amber"
-                : "slate"
-          }
-        />
-        <ProgressCard
-          label="Progress"
-          value={`${Math.round(engine.progress * 100)}%`}
-        />
-      </div>
-
-      {/* Progress bar */}
+      {/* Progress bar (kept below the visualizer+piano so the kid sees their
+          progress through the lesson at the bottom of the play area) */}
       <div
         className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
         role="progressbar"
@@ -321,7 +379,7 @@ function ListenPageInner() {
   );
 }
 
-function ProgressCard({
+function StatChip({
   label,
   value,
   tone = "default",
@@ -337,11 +395,11 @@ function ProgressCard({
     slate: "text-slate-500 dark:text-slate-400",
   };
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 text-center dark:border-slate-800 dark:bg-slate-900">
-      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-center dark:border-slate-700 dark:bg-slate-800/50">
+      <div className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
-      <div className={cn("mt-1 text-xl font-bold tabular-nums", toneClasses[tone])}>
+      <div className={cn("mt-0.5 text-base font-bold tabular-nums", toneClasses[tone])}>
         {value}
       </div>
     </div>
