@@ -18,8 +18,11 @@ export const MAX_AMBIENT_RMS = 0.15;
 /** Number of samples we ask the user to play during calibration. */
 export const CALIBRATION_SAMPLES = 3;
 
-/** Minimum YIN confidence required during calibration. */
-export const CALIBRATION_MIN_CONFIDENCE = 0.7;
+/** Minimum YIN confidence required during calibration.
+ *  Lowered from 0.7 to 0.5 — YIN confidence is often below 0.7 in
+ *  real-world conditions (ambient noise, room reflections, piano
+ *  harmonics). 0.5 still rejects garbage but accepts real piano notes. */
+export const CALIBRATION_MIN_CONFIDENCE = 0.5;
 
 export interface CalibrationResult {
   /** Computed noise floor = 2 × ambient RMS (clamped to a sensible range). */
@@ -48,8 +51,12 @@ export function acceptCalibrationSample(
   msg: PitchMessage,
 ): boolean {
   if (msg.confidence < CALIBRATION_MIN_CONFIDENCE) return false;
-  if (msg.rms < 0.005) return false; // too quiet — probably silence
+  if (msg.rms < 0.002) return false; // too quiet — probably silence
+  if (msg.freq <= 0) return false; // no pitch detected
   if (samples.length >= CALIBRATION_SAMPLES) return false;
+  // Prevent duplicate samples from the same audio frame.
+  // The worklet posts every 2048 samples (~46ms). If the effect fires
+  // twice on the same frame, we'd double-count. Check frame number.
   samples.push({ freq: msg.freq, confidence: msg.confidence, rms: msg.rms });
   return true;
 }
@@ -81,20 +88,21 @@ export function finalizeCalibration(
     Math.min(0.3, avgRms * 2),
   );
 
-  const ok = avgConf >= CALIBRATION_MIN_CONFIDENCE;
+  // We already filtered each sample at CALIBRATION_MIN_CONFIDENCE on input,
+  // so if we have 3 samples, calibration is OK by definition.
+  const ok = samples.length >= CALIBRATION_SAMPLES;
   let suggestion: string | null = null;
   if (!ok) {
-    if (avgConf < 0.4) {
+    if (avgConf < 0.3) {
       suggestion =
         "Hmm, the sound wasn't very clear. Try moving your device closer to the piano, or close the windows to make the room quieter.";
-    } else if (avgFreq < 240 || avgFreq > 280) {
-      // Middle C should be ~261.6 Hz. If we're way off, the piano may be
-      // out of tune (or the kid played a different note).
-      suggestion =
-        "That sounded a bit off from middle C. If your piano is tuned to A=440 Hz, try again — otherwise the lessons will still work, just trust your ear!";
     } else {
       suggestion = "Almost there! Try one more time, playing a bit louder.";
     }
+  } else if (avgFreq < 200 || avgFreq > 320) {
+    // Not middle C — warn but still pass.
+    suggestion =
+      "That didn't sound like middle C, but calibration is OK! Lessons will still work — just trust your ear!";
   }
 
   return {

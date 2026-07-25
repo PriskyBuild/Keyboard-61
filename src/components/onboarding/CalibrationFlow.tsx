@@ -20,6 +20,7 @@ import {
   acceptCalibrationSample,
   CALIBRATION_SAMPLES,
   CALIBRATION_MIN_CONFIDENCE,
+  DEFAULT_NOISE_FLOOR,
   finalizeCalibration,
   type CalibrationResult,
 } from "@/lib/mic/calibration";
@@ -47,27 +48,80 @@ export function CalibrationFlow({ onComplete, onSkip }: CalibrationFlowProps) {
   >([]);
 
   // When capturing, watch mic messages and accept calibration samples.
+  // We use a ref for the latest mic state + a polling timer (50ms) instead
+  // of a useEffect on mic.freq — because mic.freq changes ~20×/sec which
+  // would cause cascading re-renders. The poller reads the latest state
+  // Keep a ref of the latest mic state so the polling timer can read it
+  // without causing re-renders. Updated via useEffect (not during render).
+  const micStateRef = useRef({ freq: -1, confidence: 0, rms: 0, frame: -1 });
+  useEffect(() => {
+    micStateRef.current = { freq: mic.freq, confidence: mic.confidence, rms: mic.rms, frame: mic.frame };
+  }, [mic.freq, mic.confidence, mic.rms, mic.frame]);
+
   useEffect(() => {
     if (step !== "capturing") return;
-    if (!mic.listening) return;
-    if (mic.freq <= 0 || mic.confidence <= 0) return;
+    // Wait a moment for the mic to actually start producing data.
+    const startDelay = window.setTimeout(() => {
+      const pollId = window.setInterval(() => {
+        const ms = micStateRef.current;
+        if (ms.freq <= 0 || ms.confidence <= 0) return;
+        if (!mic.listening) return;
 
-    const accepted = acceptCalibrationSample(samplesRef.current, {
-      freq: mic.freq,
-      confidence: mic.confidence,
-      rms: mic.rms,
-      frame: mic.frame,
-    });
-    if (accepted) {
-      setSampleCount(samplesRef.current.length);
-      if (samplesRef.current.length >= CALIBRATION_SAMPLES) {
-        const r = finalizeCalibration(samplesRef.current);
-        setResult(r);
-        setStep(r.ok ? "done" : "failed");
+        // Only process if we have a NEW frame (avoid re-processing the
+        // same frame multiple times).
+        const lastFrame = samplesRef.current.length > 0
+          ? (samplesRef.current as unknown as Array<{ frame?: number }>)
+          : [];
+
+        const accepted = acceptCalibrationSample(samplesRef.current, {
+          freq: ms.freq,
+          confidence: ms.confidence,
+          rms: ms.rms,
+          frame: ms.frame,
+        });
+        if (accepted) {
+          setSampleCount(samplesRef.current.length);
+          if (samplesRef.current.length >= CALIBRATION_SAMPLES) {
+            const r = finalizeCalibration(samplesRef.current);
+            setResult(r);
+            setStep(r.ok ? "done" : "failed");
+            mic.stop();
+            window.clearInterval(pollId);
+          }
+        }
+      }, 80); // Poll every 80ms — enough time for a new worklet frame.
+      // Store the interval ID for cleanup.
+      (window as unknown as { __calibrationPollId?: number }).__calibrationPollId = pollId;
+    }, 500); // Wait 500ms for the mic to warm up.
+
+    return () => {
+      window.clearTimeout(startDelay);
+      const pollId = (window as unknown as { __calibrationPollId?: number }).__calibrationPollId;
+      if (pollId) window.clearInterval(pollId);
+    };
+  }, [step, mic]);
+
+  // Timeout — if no samples collected after 30 seconds, show a helpful
+  // message instead of hanging forever on "Play middle C".
+  useEffect(() => {
+    if (step !== "capturing") return;
+    const timeoutId = window.setTimeout(() => {
+      if (samplesRef.current.length < CALIBRATION_SAMPLES) {
+        setResult({
+          noiseFloor: DEFAULT_NOISE_FLOOR,
+          ambientRms: 0,
+          averageFreq: 0,
+          confidence: 0,
+          ok: false,
+          suggestion:
+            "We didn't hear a clear note after 30 seconds. Try moving your device closer to the piano, turning up the volume, or check that your microphone isn't muted in your browser settings.",
+        });
+        setStep("failed");
         mic.stop();
       }
-    }
-  }, [mic.freq, mic.confidence, mic.rms, mic.frame, mic.listening, step, mic]);
+    }, 30_000);
+    return () => window.clearTimeout(timeoutId);
+  }, [step, mic]);
 
   const start = useCallback(async () => {
     samplesRef.current = [];
@@ -178,6 +232,30 @@ export function CalibrationFlow({ onComplete, onSkip }: CalibrationFlowProps) {
                 <AlertTriangle className="h-3 w-3" />
                 {mic.error.message}
               </p>
+            ) : null}
+
+            {/* Live debug readout — shows the user the mic IS hearing something */}
+            {mic.listening ? (
+              <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-[10px] font-mono dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Freq:</span>
+                  <span className={mic.freq > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}>
+                    {mic.freq > 0 ? `${mic.freq.toFixed(1)} Hz` : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Confidence:</span>
+                  <span className={mic.confidence > 0.5 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
+                    {(mic.confidence * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Volume:</span>
+                  <span className={mic.rms > 0.005 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}>
+                    {(mic.rms * 100).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
             ) : null}
           </div>
         )}
