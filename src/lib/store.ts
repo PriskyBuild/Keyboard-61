@@ -146,7 +146,6 @@ export const usePianoStore = create<PianoStore>((set, get) => ({
 
 // Expose the store on window for runtime debugging in dev.
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-  // eslint-disable-next-line no-console
   const w = window as unknown as { __pianoStore?: typeof usePianoStore };
   w.__pianoStore = usePianoStore;
 }

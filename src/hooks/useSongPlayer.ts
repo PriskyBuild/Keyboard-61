@@ -229,8 +229,6 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
       }
 
       transport.start();
-      // eslint-disable-next-line no-console
-      console.log("[useSongPlayer] transport started, calling setters");
       setLocalIsPlaying(true);
       setIsPlaying(true);
       setComplete(false);
@@ -238,8 +236,6 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
       // Prime the next-note hint immediately.
       const first = noteQueueRef.current[0];
       if (first) setNextNote(first.note);
-      // eslint-disable-next-line no-console
-      console.log("[useSongPlayer] started, first note:", first?.note, "store nextNote:", usePianoStore.getState().nextNote, "store isPlaying:", usePianoStore.getState().isPlaying);
 
       // RAF loop to advance progress, set nextNote, and detect missed notes.
       const loop = async () => {
@@ -269,9 +265,6 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
           const next = noteQueueRef.current[currentIndexRef.current];
           setNextNote(next ? next.note : null);
 
-          // eslint-disable-next-line no-console
-          console.log("[useSongPlayer] loop", { now, idx: currentIndexRef.current, next: next?.note ?? null, total: noteQueueRef.current.length });
-
           // Song complete?
           if (now >= totalDurationSec / tempoRef.current + 0.5) {
             await stop();
@@ -279,9 +272,8 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
             setNextNote(null);
             return;
           }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("[useSongPlayer] loop error", err);
+        } catch {
+          /* transport not ready yet — try again next frame */
         }
         rafRef.current = requestAnimationFrame(() => {
           void loop();
@@ -290,9 +282,10 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
       rafRef.current = requestAnimationFrame(() => {
         void loop();
       });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("[useSongPlayer] start failed", err);
+    } catch {
+      // Audio engine failed to start — silently bail. The user can press
+      // Play again; if the engine is truly broken, the audio status badge
+      // will surface an error.
     }
   }, [
     audio,
@@ -375,14 +368,24 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
   // already resets `complete`/`progress`; we also need to clear the score
   // in the Zustand store. This effect is OK because resetScore updates an
   // external store, not React state.)
+  //
+  // The cleanup uses a ref to the latest `stop` function so this effect only
+  // re-runs when `song` changes — not on every render when `stop`'s identity
+  // might change. Otherwise, every setProgress() during playback would
+  // unmount-and-remount this effect and call stop() — killing playback.
+  const stopRef = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => {
+    stopRef.current = stop;
+  }, [stop]);
+
   useEffect(() => {
     if (song) {
       resetScore(song.notes.length);
     }
     return () => {
-      void stop();
+      void stopRef.current();
     };
-  }, [song, resetScore, stop]);
+  }, [song, resetScore]);
 
   // Apply tempo changes to the running Transport without restarting.
   useEffect(() => {

@@ -17,8 +17,8 @@ import {
 
 // Responsive sizing: white key width grows with viewport but caps so 36 keys
 // fit comfortably. Black keys are 62% of a white key's width.
-const MIN_WHITE_WIDTH = 22; // px — ~36*22 = 792px (mobile scrolls)
-const MAX_WHITE_WIDTH = 56; // px — ~36*56 = 2016px (desktop fits)
+const MIN_WHITE_WIDTH = 32; // px — 36*32 = 1152px (mobile scrolls)
+const MAX_WHITE_WIDTH = 56; // px — 36*56 = 2016px (desktop fits)
 const DEFAULT_WHITE_HEIGHT = 200; // px
 const BLACK_HEIGHT_RATIO = 0.62; // black key height = 62% of white
 

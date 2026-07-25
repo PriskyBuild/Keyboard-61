@@ -82,3 +82,24 @@
 - Add `next.config.ts` `allowedDevOrigins` for the preview origin (so dev warnings quiet down — purely cosmetic but nice).
 - Run final `bun run lint` + `bun run typecheck` green.
 - Final self-verification with agent-browser.
+
+## Phase C5 — Deploy config + bug fixes ✅ DONE
+- Added `allowedDevOrigins` to `next.config.ts` (silences dev-only cross-origin warnings; Vercel ignores this field).
+- Ran final `bun run lint` (clean) + `bun run typecheck` (clean).
+- Verified `/api/health` returns `{status:"ok",time:<ms>,service:"piano-learning-app"}`.
+- **Fixed two critical bugs found via Agent Browser self-verification**:
+  1. **Audio init blocked UI**: previously `initAudio()` awaited the Salamander sample load (up to 12s). Refactored to use the PolySynth fallback immediately and load the Sampler in the background. State listeners (`onAudioStateChange`) let React re-render when the Sampler swap completes. Also fixed the Tone.js v15 Sampler API: use `onload`/`onerror` callbacks (the legacy `loaded` event was removed in v15).
+  2. **Song player RAF loop never ran**: every state update caused `useAudioEngine`'s returned object to be a new identity → `clearSchedule` → `stop` callback identity changed → cleanup effect fired on every render → `stop()` killed playback immediately. Fixed by (a) memoising the `useAudioEngine` return value with `useMemo`, and (b) holding `stop` in a `useRef` updated via its own effect so the song-change cleanup effect depends only on `[song, resetScore]`.
+- **Self-verification (Agent Browser)**:
+  - `/` returns 200, no console errors, no React hydration warnings.
+  - Keyboard renders exactly **36 white + 25 black = 61 keys** spanning C2..C7 (verified by counting `button[data-variant='white']` and `button[data-variant='black']`).
+  - Clicking C4 plays the correct pitch; audio badge transitions from "Tap a key" → "Synth fallback" → "Piano samples loaded" within ~12s (Salamander samples confirmed via network panel: 200 OK for 30 .mp3 files).
+  - **Learning Mode end-to-end**: selected Ode to Joy → pressed Play → Play button switched to Pause → progress bar advanced 0% → 47% → 100% → "Song complete!" overlay shown. Score stayed at 0 because the test browser didn't press keys (all 30 notes missed).
+  - **Correct press**: pressed C4 when nextNote was C4 → score +102 (100 + 2 streak bonus), hits=1, streak=1, advanced to next note.
+  - **Wrong press**: pressed C5 when nextNote was C4 → score unchanged, hits unchanged, streak reset to 0, next-note hint did NOT advance (correct behaviour).
+  - **Visualizer**: confirmed amber/orange pixels (RGB ≈ 248,173,22) drawing on the canvas during playback.
+  - **Mobile 375px**: keyboard scrolls horizontally (1152px content in 325px viewport), keys 32px×150px.
+  - **Desktop 1280×800**: footer sticks to bottom (totalH=800=viewportH, footer at top:751,bottom:800).
+  - **Short viewport 1280×400**: footer pushed down naturally (totalH=586, viewportH=400, scrolls).
+  - **Toggles**: Note names → key shows "C4"; Key hints → key shows "A"; Octave up → hint moves from C4 to C5.
+  - **Computer keyboard**: dispatching `keydown` for "a" → C5 added to activeNotes; `keyup` → removed.

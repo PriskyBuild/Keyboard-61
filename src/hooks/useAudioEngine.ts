@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AudioEngineState } from "@/types";
 
 // We hold the dynamically-imported module in a ref so we only import it once.
@@ -138,16 +138,36 @@ export function useAudioEngine(): UseAudioEngine {
     return mod.nowSeconds();
   }, []);
 
-  return {
-    state,
-    ensureReady,
-    playNote,
-    releaseNote,
-    releaseAll,
-    setSustain,
-    setVolumeDb,
-    setReverbWet,
-    getTransport,
-    nowSeconds,
-  };
+  return useMemo(
+    () => ({
+      state,
+      ensureReady,
+      playNote,
+      releaseNote,
+      releaseAll,
+      setSustain,
+      setVolumeDb,
+      setReverbWet,
+      getTransport,
+      nowSeconds,
+    }),
+    // `state` is the only piece that changes — every callback is stable
+    // (useCallback with empty deps). Memoising keeps the returned object's
+    // identity stable across re-renders when only `state` changes, which
+    // matters for downstream hooks that depend on this object (e.g.
+    // useSongPlayer's stop() callback, whose identity must be stable
+    // for cleanup effects not to fire spuriously).
+    [
+      state,
+      ensureReady,
+      playNote,
+      releaseNote,
+      releaseAll,
+      setSustain,
+      setVolumeDb,
+      setReverbWet,
+      getTransport,
+      nowSeconds,
+    ],
+  );
 }
