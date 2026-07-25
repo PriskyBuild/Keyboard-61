@@ -258,3 +258,61 @@ html:not(.light):not(.dark) .piano-theme-toggle button[data-theme-choice="system
   animation: piano-pop 0.35s ease-out both;
 }
 
+
+/* ============================================================
+ * Phase 2 — Mascot + kid-mode animations
+ * ========================================================== */
+@keyframes mascot-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+.animate-mascot-breathe { animation: mascot-breathe 3.5s ease-in-out infinite; }
+
+@keyframes mascot-bounce {
+  0%, 100% { transform: translateY(0); }
+  30%      { transform: translateY(-12px); }
+  60%      { transform: translateY(0); }
+}
+.animate-mascot-bounce { animation: mascot-bounce 0.6s ease-out; }
+
+@keyframes mascot-nod {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-6deg); }
+  75%      { transform: rotate(6deg); }
+}
+.animate-mascot-nod { animation: mascot-nod 0.5s ease-in-out; }
+
+@keyframes sparkle {
+  0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50%      { transform: scale(1) rotate(180deg); opacity: 1; }
+}
+.animate-sparkle { animation: sparkle 1s ease-in-out infinite; }
+
+/* Kid-mode falling notes — slower + larger than the Learning Mode visualizer */
+@keyframes kid-fall {
+  from { transform: translateY(-110%); }
+  to   { transform: translateY(0); }
+}
+
+/* Green burst on correct note */
+@keyframes kid-green-burst {
+  0%   { transform: scale(0.6); opacity: 0; }
+  30%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+.animate-green-burst { animation: kid-green-burst 0.6s ease-out; }
+
+/* Soft yellow wiggle on wrong note (NEVER red) */
+@keyframes kid-wiggle {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-6px) rotate(-2deg); }
+  75%      { transform: translateX(6px) rotate(2deg); }
+}
+.animate-wiggle { animation: kid-wiggle 0.4s ease-in-out 2; }
+
+/* Coin pop */
+@keyframes coin-pop {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-40px) scale(1.4); opacity: 0; }
+}
+.animate-coin-pop { animation: coin-pop 0.8s ease-out forwards; }

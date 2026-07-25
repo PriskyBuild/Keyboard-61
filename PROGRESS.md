@@ -161,3 +161,23 @@
 - HandPositionDiagram (visual finger hints).
 - Tone.js audio cues (arpeggio on correct, chime on wrong, fanfare on complete).
 - 24px+ body, 48px+ note cards, 64px+ touch targets.
+
+### P2-C4 — Listen Mode UI ✅ DONE
+- src/components/listen/Mascot.tsx: SVG bear mascot with 4 states (idle, listening, happy, encourage). CSS animations (breathe, bounce, nod, sparkle). Blinking eyes (SVG <animate>), listening sound-wave indicators, rosy cheeks in happy/encourage states. Speech bubble for messages.
+- src/components/listen/ListenPiano.tsx: reference-only 61-key display (C2-C7, 36 white + 25 black). div-based (no button, no pointer handlers). Active note lights up green, expected note amber, wrong note amber wiggle. Bigger keys than Phase-1 Piano (40-72px white, 64px+ touch target).
+- src/components/listen/FallingNotesKid.tsx: canvas-based kid visualizer. Larger note rectangles (min 28px), slower (140 px/sec vs Phase-1's 220), bolder colors (emerald for RH, blue for LH), note-name label (18px bold) + finger number (14px) printed on each note. Approach glow when near hit line.
+- src/components/listen/FeedbackOverlay.tsx: green burst on correct (emerald-400 ring + Check icon + Sparkles), soft yellow wiggle on wrong (amber-200 with 🎵 emoji). NEVER red. Auto-clears via CSS animation. Trigger-key pattern re-fires animation on consecutive same-type feedback.
+- src/components/listen/HandPositionDiagram.tsx: SVG-free flexbox of 2 hands (L/R) with 5 numbered fingers each. Active finger highlighted amber + scales 110%. Inactive hand dimmed to 40% opacity.
+- src/components/listen/CelebrationScreen.tsx: full-screen overlay with mascot dance, canvas-confetti burst (3 bursts + final shower), sticker reveal (scale + fade-in animation), coins-earned chip, accuracy message tiered by score. Fanfare audio cue on mount.
+- src/components/onboarding/MicPermissionModal.tsx: friendly Dialog with mascot + 4 privacy bullet points (only while on page, nothing recorded, auto-stop on tab switch, stop button). ShieldCheck icon + "Allow microphone" CTA.
+- src/lib/audio-cues.ts: playCorrectCue (C major arpeggio C4-E4-G4-C5, 80ms stagger), playWrongCue (soft A3+E4 perfect fifth — no dissonance), playFanfareCue (C major fanfare C4-C4-G4-C5-E5-G5), playHighlightCue (soft C5 click).
+- src/hooks/useLessonEngine.ts: drives lesson flow (intro → guided → recital → complete). Polls mic state via setTimeout (50ms) instead of re-binding effect on every mic sample — avoids cascading renders. Auto-advances 400ms after correct press. Mascot message computed from state.
+- Rewrote src/app/listen/page.tsx: full kid-friendly UI with header (Start/Stop + persistent "🎤 Listening" badge with ping animation), mascot, falling-notes visualizer, reference piano, hand diagram, 4 progress cards (Note/Hits/Accuracy/Progress), progress bar, privacy footer, permission modal, feedback overlay, celebration screen on complete.
+- Added mascot + kid-mode CSS animations to globals.css (mascot-breathe, mascot-bounce, mascot-nod, sparkle, kid-fall, kid-green-burst, kid-wiggle, coin-pop).
+- Installed @types/canvas-confetti.
+- Verified via agent-browser: /listen returns 200, full UI renders (header + mascot + visualizer + 61-key piano + hand diagram + 4 progress cards + privacy footer). Permission modal opens with "Can Bruno hear your piano?" heading. Allow click → getUserMedia → "No Device" error handled gracefully with kid-friendly message + mascot encourage state. Lint + typecheck clean.
+
+### Next — P2-C5: Kids curriculum
+- src/lib/curriculum.ts: 12-lesson structured path with finger hints.
+- src/app/curriculum/page.tsx + LessonPath + LessonCard + FingerHint components.
+- Lessons unlock sequentially; pass at 70% accuracy.
