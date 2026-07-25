@@ -18,7 +18,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLessonEngine } from "@/hooks/useLessonEngine";
 import { Mascot, type MascotState } from "@/components/listen/Mascot";
@@ -65,6 +65,23 @@ const DEMO_LESSON: CurriculumLesson = {
 };
 
 export default function ListenPage() {
+  // useSearchParams() must be wrapped in a Suspense boundary in Next.js 16
+  // when statically prerendered. We split the route into a thin outer shell
+  // (no useSearchParams) + an inner consumer that lives inside <Suspense>.
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center">
+          <div className="text-muted-foreground">Loading…</div>
+        </main>
+      }
+    >
+      <ListenPageInner />
+    </Suspense>
+  );
+}
+
+function ListenPageInner() {
   const searchParams = useSearchParams();
   const lessonId = searchParams.get("lesson");
   const curriculum: CurriculumLesson = useMemo(() => {
