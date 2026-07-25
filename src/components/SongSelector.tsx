@@ -4,11 +4,12 @@
 "use client";
 
 import { useState } from "react";
-import { Music2, Clock, Gauge, Crown, Star, Play, Square } from "lucide-react";
+import { Music2, Clock, Gauge, Crown, Star, Play, Square, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SONGS } from "@/lib/songs";
 import { usePianoStore } from "@/lib/store";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
+import { loadFavorites, toggleFavorite } from "@/lib/favorites";
 import type { Difficulty, Song } from "@/types";
 
 const DIFFICULTY_COLORS: Record<Difficulty, string> = {
@@ -36,6 +37,23 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
   const highScores = usePianoStore((s) => s.highScores);
   const audio = useAudioEngine();
   const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(() =>
+    typeof window !== "undefined" ? loadFavorites() : new Set(),
+  );
+
+  const handleToggleFavorite = (songId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites((prev) => toggleFavorite(songId, prev));
+  };
+
+  // Sort songs: favorites first (alphabetical), then the rest (by original order).
+  const sortedSongs = [...SONGS].sort((a, b) => {
+    const aFav = favorites.has(a.id) ? 0 : 1;
+    const bFav = favorites.has(b.id) ? 0 : 1;
+    if (aFav !== bFav) return aFav - bFav;
+    if (aFav === 0) return a.title.localeCompare(b.title);
+    return 0; // preserve original order for non-favorites
+  });
 
   const previewSong = async (song: Song, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -72,7 +90,7 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {SONGS.map((song, idx) => {
+      {sortedSongs.map((song, idx) => {
         const isSelected =
           selectedId === song.id || current?.id === song.id;
         const noteCount = song.notes.length;
@@ -106,6 +124,23 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
                 : "border-slate-200/60 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/70",
             )}
           >
+            {/* Favorite heart button (top-left corner) */}
+            <button
+              type="button"
+              onClick={(e) => handleToggleFavorite(song.id, e)}
+              className={cn(
+                "absolute left-1.5 top-1.5 z-10 grid h-7 w-7 place-items-center rounded-full transition-all",
+                favorites.has(song.id)
+                  ? "bg-rose-100 text-rose-500 dark:bg-rose-500/20 dark:text-rose-400"
+                  : "bg-white/60 text-slate-400 hover:text-rose-400 dark:bg-slate-900/60",
+              )}
+              aria-label={favorites.has(song.id) ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart
+                className={cn("h-3.5 w-3.5", favorites.has(song.id) && "fill-current")}
+              />
+            </button>
+
             {/* Personal-best ribbon (top-right corner) */}
             {hs ? (
               <div className="absolute right-0 top-0 flex items-center gap-1 rounded-bl-lg bg-gradient-to-r from-amber-400 to-orange-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">

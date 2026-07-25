@@ -27,7 +27,7 @@ export function HeroBanner() {
             New: Microphone Listening Mode
           </div>
           <h2 className="text-2xl font-bold leading-tight sm:text-3xl">
-            Play your <span className="bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">real piano</span>, we&apos;ll listen.
+            Play your <span className="gradient-text-amber">real piano</span>, we&apos;ll listen.
           </h2>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Sit at your piano, play along, and Bruno the bear cheers you on.
