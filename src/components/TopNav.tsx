@@ -1,7 +1,10 @@
 // MIT License — Piano Learning App (Phase 2)
 // Top navigation — lets users jump between Phase 1 (Play) and Phase 2
-// routes (Listen, Curriculum, Stickers, Parent). Hidden on the home route
-// because <AppShell> already has its own header there.
+// routes (Listen, Curriculum, Stickers, Parent). Always visible (including
+// on the home route) so users can discover Phase 2 from anywhere.
+//
+// On the home route we render a more compact version to avoid stacking
+// with AppShell's own header.
 
 "use client";
 
@@ -26,10 +29,50 @@ const NAV_ITEMS: NavItem[] = [
 
 export function TopNav() {
   const pathname = usePathname();
+  const isHome = pathname === "/";
 
-  // Don't render the floating nav on the home route — AppShell has its own
-  // header there.
-  if (pathname === "/") return null;
+  // On the home route, render a compact pill-nav (icon-only on mobile,
+  // icon+label on desktop) so it sits nicely under AppShell's header.
+  // On other routes, render the full nav with the brand logo.
+
+  if (isHome) {
+    return (
+      <nav
+        aria-label="Phase 2 navigation"
+        className="z-20 border-b border-slate-200/60 bg-slate-50/70 backdrop-blur dark:border-slate-800 dark:bg-slate-950/70"
+      >
+        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-3 py-1.5 sm:px-6">
+          <span className="mr-1 hidden text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:inline">
+            Explore:
+          </span>
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isActive = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={label}
+                title={label}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                  isActive
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-amber-100 hover:text-amber-700 dark:text-slate-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-300",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{label}</span>
+              </Link>
+            );
+          })}
+          <span className="ml-auto hidden text-[10px] text-muted-foreground sm:inline">
+            Press <kbd className="rounded bg-slate-200 px-1 font-mono dark:bg-slate-800">⌘K</kbd> for commands
+          </span>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav
