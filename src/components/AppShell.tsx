@@ -9,6 +9,7 @@ import { ModeToggle } from "@/components/ModeToggle";
 import { Piano } from "@/components/Piano";
 import { Metronome } from "@/components/Metronome";
 import { HeroBanner } from "@/components/HeroBanner";
+import { DailyChallengeCard } from "@/components/DailyChallengeCard";
 import {
   CommandPalette,
   CommandPaletteHint,
@@ -58,7 +59,12 @@ export default function AppShell() {
 
       <main className="flex flex-1 flex-col gap-6 px-3 py-6 sm:px-6 lg:px-8">
         {/* Hero banner — Free Play only, highlights Phase 2 features */}
-        {mode === "free" ? <HeroBanner /> : null}
+        {mode === "free" ? (
+          <>
+            <HeroBanner />
+            <DailyChallengeCard />
+          </>
+        ) : null}
 
         {/* Mode toggle + status row */}
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
@@ -73,14 +79,16 @@ export default function AppShell() {
         {mode === "learn" ? (
           // LearningPanel renders its own Piano with the song-player's
           // scoring callbacks wired in. We don't render a second Piano here.
-          <LearningPanel />
+          <div key="learn" className="animate-mode-fade">
+            <LearningPanel />
+          </div>
         ) : (
-          <>
+          <div key="free" className="animate-mode-fade">
             <Piano />
             {/* Metronome is Free-Play-only — Learning Mode already drives
                 the kid with falling notes. */}
             <Metronome />
-          </>
+          </div>
         )}
 
         {/* Controls are shared (volume, sustain, reverb, note-name + key-hint
@@ -184,10 +192,31 @@ function AudioStatusBadge({
 
 function Footer() {
   return (
-    <footer className="mt-auto border-t border-slate-200/60 bg-slate-50/60 py-4 dark:border-slate-800 dark:bg-slate-950/60">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-3 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
-        <p>Built with Next.js 16 · Tone.js · Tailwind CSS</p>
-        <p>MIT License — fully client-side, deploys to Vercel with zero env vars.</p>
+    <footer className="mt-auto">
+      <div className="footer-gradient-line" />
+      <div className="bg-slate-50/60 py-4 dark:bg-slate-950/60">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-3 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <span>Built with Next.js 16 · Tone.js · Tailwind CSS</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href="/help/microphone"
+              className="inline-flex items-center gap-1 transition hover:text-foreground"
+            >
+              🔒 Privacy
+            </a>
+            <span className="opacity-30">·</span>
+            <a
+              href="/achievements"
+              className="inline-flex items-center gap-1 transition hover:text-foreground"
+            >
+              🏆 Achievements
+            </a>
+            <span className="opacity-30">·</span>
+            <span>MIT License</span>
+          </div>
+        </div>
       </div>
     </footer>
   );

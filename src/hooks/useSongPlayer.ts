@@ -27,6 +27,7 @@ import { useAudioEngine } from "@/hooks/useAudioEngine";
 import { usePianoStore } from "@/lib/store";
 import type { Score, Song, VisualizerNote } from "@/types";
 import { beatsToSeconds, songLengthBeats } from "@/lib/songs";
+import { getDailyChallenge, completeDailyChallenge } from "@/lib/daily-challenge";
 import { getBlackKeys, getWhiteKeys, parseNote } from "@/lib/notes";
 
 /** How forgiving the hit window is, in milliseconds. */
@@ -343,6 +344,16 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
                 bumpStatField("secondsPlayed", elapsedSec);
                 bumpStatField("songsCompleted", 1);
                 commitHighScore(song.id);
+                // Mark the daily challenge as completed if this was the
+                // challenge song.
+                try {
+                  const dc = getDailyChallenge();
+                  if (dc.songId === song.id && !dc.completed) {
+                    completeDailyChallenge();
+                  }
+                } catch {
+                  /* noop */
+                }
               }
               return;
             }

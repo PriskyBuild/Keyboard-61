@@ -530,3 +530,49 @@ html:not(.light):not(.dark) .piano-theme-toggle button[data-theme-choice="system
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out;
 }
+
+/* ============================================================
+ * Round 7 polish — glassmorphism, footer, mode transitions
+ * ========================================================== */
+
+/* Glassmorphism card — frosted glass effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.dark .glass-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+/* Mode transition — smooth fade between Free Play and Learning */
+@keyframes mode-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-mode-fade {
+  animation: mode-fade 0.3s ease-out;
+}
+
+/* Footer gradient line */
+.footer-gradient-line {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.769 0.188 70.08 / 0.5) 30%,
+    oklch(0.6 0.118 184.704 / 0.5) 60%,
+    oklch(0.628 0.257 25.5 / 0.5) 100%
+  );
+}
+
+/* Daily challenge pulse — gentle attention-grabber */
+@keyframes daily-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+.animate-daily-pulse {
+  animation: daily-pulse 3s ease-in-out infinite;
+}
