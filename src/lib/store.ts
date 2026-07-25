@@ -2,11 +2,25 @@
 // Global UI state via Zustand. Audio engine state stays in React hooks because
 // it owns Tone.js resources; this store only mirrors user-facing preferences
 // and cross-component interaction state.
+//
+// Persists to localStorage on every preference change. High scores and stats
+// are also persisted and surfaced for the UI.
 
 "use client";
 
 import { create } from "zustand";
 import type { Mode, Score, Song } from "@/types";
+import {
+  DEFAULT_PREFS,
+  bumpStat,
+  loadPrefs,
+  loadStats,
+  recordHighScore,
+  savePrefs,
+  saveStats,
+  type HighScore,
+  type PersistedStats,
+} from "@/lib/persistence";
 
 export interface PianoStore {
   // ---- Mode ----
@@ -38,6 +52,10 @@ export interface PianoStore {
   reverb: number;
   setReverb: (v: number) => void;
 
+  // ---- Theme ----
+  theme: "light" | "dark" | "system";
+  setTheme: (t: "light" | "dark" | "system") => void;
+
   // ---- Learning mode ----
   currentSong: Song | null;
   setCurrentSong: (song: Song | null) => void;
@@ -58,6 +76,24 @@ export interface PianoStore {
   /** Key currently flashing red (wrong press). */
   wrongNote: string | null;
   flashWrong: (note: string) => void;
+
+  // ---- Persistence: high scores + stats ----
+  highScores: Record<string, HighScore>;
+  /** Commit the current score as a high-score attempt for the given song.
+   *  Returns the new high score (or null if no song). */
+  commitHighScore: (songId: string) => HighScore | null;
+  stats: PersistedStats;
+  /** Increment a stat field by a delta (e.g. notesPlayed += 1). */
+  bumpStatField: (
+    field: keyof Omit<PersistedStats, "firstSeenAt" | "lastSeenAt">,
+    delta: number,
+  ) => void;
+  refreshStats: () => void;
+  /** Reset all prefs + stats (with confirmation handled by the caller). */
+  resetAll: () => void;
+  /** True once we've hydrated from localStorage. Components can wait on
+   *  this before reading persistent state to avoid hydration mismatches. */
+  hydrated: boolean;
 }
 
 const initialScore: Score = {
@@ -68,39 +104,133 @@ const initialScore: Score = {
   bestStreak: 0,
 };
 
+// ---------------------------------------------------------------------------
+// Initial state — hydrated from localStorage if available.
+// ---------------------------------------------------------------------------
+
+function getInitialPrefs() {
+  // SSR-safe: returns defaults on the server.
+  const prefs = typeof window !== "undefined" ? loadPrefs() : DEFAULT_PREFS;
+  return prefs;
+}
+
+function getInitialStats() {
+  if (typeof window === "undefined") {
+    return {
+      totalNotesPlayed: 0,
+      songsCompleted: 0,
+      secondsPlayed: 0,
+      freePlaySessions: 0,
+      firstSeenAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
+    } satisfies PersistedStats;
+  }
+  return loadStats();
+}
+
+const initialPrefs = getInitialPrefs();
+const initialStats = getInitialStats();
+
+/** Persist the prefs slice of the store to localStorage. Called after every
+ *  pref-mutating setter. No-op on the server. */
+function persistPrefs(state: PianoStore): void {
+  if (typeof window === "undefined") return;
+  savePrefs({
+    showNoteNames: state.showNoteNames,
+    showKeyHints: state.showKeyHints,
+    keyboardOctave: state.keyboardOctave,
+    sustain: state.sustain,
+    volume: state.volume,
+    reverb: state.reverb,
+    tempo: state.tempo,
+    mode: state.mode,
+    lastSongId: state.currentSong?.id ?? null,
+    highScores: state.highScores,
+    theme: state.theme,
+  });
+}
+
 export const usePianoStore = create<PianoStore>((set, get) => ({
-  mode: "free",
-  setMode: (mode) => set({ mode }),
+  // Hydrated initial values
+  mode: initialPrefs.mode,
+  showNoteNames: initialPrefs.showNoteNames,
+  showKeyHints: initialPrefs.showKeyHints,
+  keyboardOctave: initialPrefs.keyboardOctave,
+  sustain: initialPrefs.sustain,
+  volume: initialPrefs.volume,
+  reverb: initialPrefs.reverb,
+  tempo: initialPrefs.tempo,
+  theme: initialPrefs.theme,
+  highScores: initialPrefs.highScores,
+  stats: initialStats,
+  hydrated: typeof window !== "undefined",
 
-  showNoteNames: false,
-  toggleNoteNames: () => set((s) => ({ showNoteNames: !s.showNoteNames })),
-  setShowNoteNames: (v) => set({ showNoteNames: v }),
+  setMode: (mode) => {
+    set({ mode });
+    persistPrefs(get());
+  },
 
-  showKeyHints: false,
-  toggleKeyHints: () => set((s) => ({ showKeyHints: !s.showKeyHints })),
-  setShowKeyHints: (v) => set({ showKeyHints: v }),
+  toggleNoteNames: () => {
+    set((s) => ({ showNoteNames: !s.showNoteNames }));
+    persistPrefs(get());
+  },
+  setShowNoteNames: (v) => {
+    set({ showNoteNames: v });
+    persistPrefs(get());
+  },
 
-  keyboardOctave: 4,
-  setKeyboardOctave: (oct) => set({ keyboardOctave: oct }),
-  shiftOctave: (delta) =>
-    set((s) => {
-      const next = Math.max(2, Math.min(6, s.keyboardOctave + delta));
-      return { keyboardOctave: next };
-    }),
+  toggleKeyHints: () => {
+    set((s) => ({ showKeyHints: !s.showKeyHints }));
+    persistPrefs(get());
+  },
+  setShowKeyHints: (v) => {
+    set({ showKeyHints: v });
+    persistPrefs(get());
+  },
 
-  sustain: false,
-  setSustain: (v) => set({ sustain: v }),
-  toggleSustain: () => set((s) => ({ sustain: !s.sustain })),
+  setKeyboardOctave: (oct) => {
+    set({ keyboardOctave: Math.max(2, Math.min(6, oct)) });
+    persistPrefs(get());
+  },
+  shiftOctave: (delta) => {
+    set((s) => ({
+      keyboardOctave: Math.max(2, Math.min(6, s.keyboardOctave + delta)),
+    }));
+    persistPrefs(get());
+  },
 
-  volume: 0.6,
-  setVolume: (v) => set({ volume: Math.max(0, Math.min(1, v)) }),
-  reverb: 0.18,
-  setReverb: (v) => set({ reverb: Math.max(0, Math.min(1, v)) }),
+  setSustain: (v) => {
+    set({ sustain: v });
+    persistPrefs(get());
+  },
+  toggleSustain: () => {
+    set((s) => ({ sustain: !s.sustain }));
+    persistPrefs(get());
+  },
+
+  setVolume: (v) => {
+    set({ volume: Math.max(0, Math.min(1, v)) });
+    persistPrefs(get());
+  },
+  setReverb: (v) => {
+    set({ reverb: Math.max(0, Math.min(1, v)) });
+    persistPrefs(get());
+  },
+
+  setTheme: (t) => {
+    set({ theme: t });
+    persistPrefs(get());
+  },
 
   currentSong: null,
-  setCurrentSong: (song) => set({ currentSong: song }),
-  tempo: 1,
-  setTempo: (t) => set({ tempo: Math.max(0.5, Math.min(1.5, t)) }),
+  setCurrentSong: (song) => {
+    set({ currentSong: song });
+    persistPrefs(get());
+  },
+  setTempo: (t) => {
+    set({ tempo: Math.max(0.5, Math.min(1.5, t)) });
+    persistPrefs(get());
+  },
   isPlaying: false,
   setIsPlaying: (v) => set({ isPlaying: v }),
 
@@ -134,13 +264,64 @@ export const usePianoStore = create<PianoStore>((set, get) => ({
   wrongNote: null,
   flashWrong: (note) => {
     set({ wrongNote: note });
-    // Auto-clear after the flash animation duration.
     if (typeof window !== "undefined") {
       window.setTimeout(() => {
-        // Only clear if it's still THIS note (avoid clobbering a newer flash).
         if (get().wrongNote === note) set({ wrongNote: null });
       }, 420);
     }
+  },
+
+  commitHighScore: (songId) => {
+    const score = get().score;
+    const accuracy =
+      score.total > 0 ? Math.round((score.hits / score.total) * 100) : 0;
+    const next = recordHighScore(songId, {
+      points: score.points,
+      accuracy,
+      bestStreak: score.bestStreak,
+      hits: score.hits,
+      total: score.total,
+    });
+    if (next) {
+      set((s) => ({
+        highScores: { ...s.highScores, [songId]: next },
+      }));
+      persistPrefs(get());
+    }
+    return next;
+  },
+
+  bumpStatField: (field, delta) => {
+    const next = bumpStat(field, delta);
+    set({ stats: next });
+  },
+  refreshStats: () => {
+    set({ stats: loadStats() });
+  },
+
+  resetAll: () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("piano-app:v1");
+      window.localStorage.removeItem("piano-app:stats:v1");
+    }
+    const freshPrefs = loadPrefs();
+    const freshStats = loadStats();
+    set({
+      mode: freshPrefs.mode,
+      showNoteNames: freshPrefs.showNoteNames,
+      showKeyHints: freshPrefs.showKeyHints,
+      keyboardOctave: freshPrefs.keyboardOctave,
+      sustain: freshPrefs.sustain,
+      volume: freshPrefs.volume,
+      reverb: freshPrefs.reverb,
+      tempo: freshPrefs.tempo,
+      theme: freshPrefs.theme,
+      highScores: {},
+      stats: freshStats,
+      currentSong: null,
+      score: { ...initialScore },
+      nextNote: null,
+    });
   },
 }));
 
@@ -148,4 +329,9 @@ export const usePianoStore = create<PianoStore>((set, get) => ({
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   const w = window as unknown as { __pianoStore?: typeof usePianoStore };
   w.__pianoStore = usePianoStore;
+}
+
+// Save stats once on mount to refresh lastSeenAt.
+if (typeof window !== "undefined") {
+  saveStats(loadStats());
 }

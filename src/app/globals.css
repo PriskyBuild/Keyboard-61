@@ -194,3 +194,67 @@
 }
 .piano-scroll::-webkit-scrollbar-thumb:hover { background: oklch(0.42 0 0); }
 
+/* ============================================================
+ * Theme toggle — CSS-driven active highlight.
+ * next-themes sets class="dark" or class="light" (or nothing
+ * for system) on <html>. We mark the matching button as
+ * aria-checked=true via attribute selectors so the Tailwind
+ * aria-[checked=true] utilities apply.
+ *
+ * We can't directly set aria-checked from CSS, so we use a
+ * "active" visual treatment driven by the html class instead.
+ * ========================================================== */
+.piano-theme-toggle button[data-theme-choice="light"] {
+  /* default state */
+}
+html.light .piano-theme-toggle button[data-theme-choice="light"],
+html.dark .piano-theme-toggle button[data-theme-choice="dark"] {
+  background: oklch(0.769 0.188 70.08);
+  color: white;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.2);
+}
+html:not(.light):not(.dark) .piano-theme-toggle button[data-theme-choice="system"] {
+  background: oklch(0.769 0.188 70.08);
+  color: white;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.2);
+}
+
+/* ============================================================
+ * Piano stage — wood-grain frame
+ * ========================================================== */
+.piano-stage {
+  position: relative;
+}
+.piano-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, oklch(0.32 0.06 50) 0%, oklch(0.22 0.05 50) 100%);
+  z-index: -1;
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.4);
+}
+
+/* ============================================================
+ * Subtle entrance animations
+ * ========================================================== */
+@keyframes piano-fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: piano-fade-in-up 0.4s ease-out both;
+}
+
+@keyframes piano-pop {
+  0%   { transform: scale(0.95); opacity: 0; }
+  60%  { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: piano-pop 0.35s ease-out both;
+}
+

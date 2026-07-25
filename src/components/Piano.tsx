@@ -51,6 +51,7 @@ export function Piano({ onNotePress, onNoteRelease }: PianoProps) {
   const wrongNote = usePianoStore((s) => s.wrongNote);
   const pressNote = usePianoStore((s) => s.pressNote);
   const releaseNoteState = usePianoStore((s) => s.releaseNoteState);
+  const bumpStatField = usePianoStore((s) => s.bumpStatField);
 
   // Audio engine.
   const audio = useAudioEngine();
@@ -92,9 +93,15 @@ export function Piano({ onNotePress, onNoteRelease }: PianoProps) {
         /* will fall back to silent */
       }
       void audio.playNote(note, 0.85);
+      // Persist: count this note toward lifetime stats when in Free Play
+      // (Learning Mode counts hits via the song player hook instead, to
+      // avoid double-counting).
+      if (!onNotePress) {
+        bumpStatField("totalNotesPlayed", 1);
+      }
       onNotePress?.(note);
     },
-    [audio, onNotePress, pressNote],
+    [audio, onNotePress, pressNote, bumpStatField],
   );
 
   const handleRelease = useCallback(

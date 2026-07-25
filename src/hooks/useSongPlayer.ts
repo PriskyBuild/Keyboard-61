@@ -111,6 +111,10 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
   const setIsPlaying = usePianoStore((s) => s.setIsPlaying);
   const pressNote = usePianoStore((s) => s.pressNote);
   const releaseNoteState = usePianoStore((s) => s.releaseNoteState);
+  // Persistence hooks
+  const commitHighScore = usePianoStore((s) => s.commitHighScore);
+  const bumpStatField = usePianoStore((s) => s.bumpStatField);
+  const playStartTsRef = useRef<number | null>(null);
 
   const [isPlaying, setLocalIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -229,6 +233,8 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
       }
 
       transport.start();
+      // Mark play-start timestamp for "seconds played" stat.
+      playStartTsRef.current = Date.now();
       setLocalIsPlaying(true);
       setIsPlaying(true);
       setComplete(false);
@@ -270,6 +276,18 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
             await stop();
             setComplete(true);
             setNextNote(null);
+            // Persist: commit a high-score attempt + bump songs-completed +
+            // accumulated play-time. Only counts if the user actually played
+            // (hit at least one note) — otherwise it's just a playthrough.
+            if (song && playStartTsRef.current !== null) {
+              const elapsedSec = Math.round(
+                (Date.now() - playStartTsRef.current) / 1000,
+              );
+              playStartTsRef.current = null;
+              bumpStatField("secondsPlayed", elapsedSec);
+              bumpStatField("songsCompleted", 1);
+              commitHighScore(song.id);
+            }
             return;
           }
         } catch {
@@ -297,6 +315,8 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
     resetScore,
     stop,
     totalDurationSec,
+    commitHighScore,
+    bumpStatField,
   ]);
 
   const pause = useCallback(async () => {
@@ -348,13 +368,15 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
         currentIndexRef.current += 1;
         const next = queue[currentIndexRef.current];
         setNextNote(next ? next.note : null);
+        // Persistence: count this correct press toward lifetime notes played.
+        bumpStatField("totalNotesPlayed", 1);
       } else {
         // Wrong press.
         flashWrong(note);
         setScore({ streak: 0 });
       }
     },
-    [pressNote, setScore, flashWrong, setNextNote],
+    [pressNote, setScore, flashWrong, setNextNote, bumpStatField],
   );
 
   const onNoteRelease = useCallback(

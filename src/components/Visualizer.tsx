@@ -96,14 +96,41 @@ export function Visualizer({
         transportSec = 0;
       }
 
-      // Background
-      ctx.fillStyle = COLORS.bg;
+      // Background — vertical gradient (darker at top, lighter near hit line).
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bgGrad.addColorStop(0, "rgba(15, 23, 42, 0.96)");
+      bgGrad.addColorStop(0.7, "rgba(15, 23, 42, 0.92)");
+      bgGrad.addColorStop(1, "rgba(30, 41, 59, 0.85)");
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, w, h);
 
+      // Subtle horizontal beat gridlines (every 0.5s in song time).
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+      ctx.lineWidth = 1;
+      const beatIntervalSec = 0.5;
+      const beatOffset = (transportSec % beatIntervalSec) * pixelsPerSecond;
+      const hitY = h - 4;
+      for (let y = hitY + beatOffset; y < h; y += pixelsPerSecond * beatIntervalSec) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
       // Hit line at the bottom edge of the canvas (notes "land" here).
-      const hitLineY = h - 4;
+      // Glow underlay
+      const hitGlow = ctx.createLinearGradient(0, hitY - 16, 0, hitY);
+      hitGlow.addColorStop(0, "rgba(244, 63, 94, 0)");
+      hitGlow.addColorStop(1, "rgba(244, 63, 94, 0.35)");
+      ctx.fillStyle = hitGlow;
+      ctx.fillRect(0, hitY - 16, w, 16);
+      // Crisp line
       ctx.fillStyle = COLORS.hitLine;
-      ctx.fillRect(0, hitLineY - 2, w, 4);
+      ctx.fillRect(0, hitY - 2, w, 4);
+      // Highlight caps on each end
+      ctx.fillStyle = "rgba(244, 63, 94, 0.6)";
+      ctx.fillRect(0, hitY - 8, 4, 16);
+      ctx.fillRect(w - 4, hitY - 8, 4, 16);
 
       // Draw each note that falls within [nowSec - 0.2, nowSec + LOOKAHEAD_SEC].
       const t0 = transportSec - 0.2;
@@ -114,9 +141,9 @@ export function Visualizer({
 
         // Y position: notes fall from (nowSec + LOOKAHEAD_SEC) at the top to nowSec at the hit line.
         const dt = n.startSec - transportSec;
-        // Top of the note should be at hitLineY - (dt * pxPerSec) - (noteHeight)
+        // Top of the note should be at hitY - (dt * pxPerSec) - (noteHeight)
         const noteHeightPx = Math.max(8, n.durationSec * pixelsPerSecond * 0.8);
-        const y = hitLineY - dt * pixelsPerSecond - noteHeightPx;
+        const y = hitY - dt * pixelsPerSecond - noteHeightPx;
 
         const x = n.xRatio * w;
         const width = Math.max(6, n.widthRatio * w - 2);
@@ -124,26 +151,43 @@ export function Visualizer({
         // Skip if entirely off-screen above.
         if (y + noteHeightPx < 0) continue;
 
-        // Body
+        // Body — gradient + drop shadow
         const grad = ctx.createLinearGradient(x, y, x, y + noteHeightPx);
         if (n.isBlack) {
           grad.addColorStop(0, COLORS.blackEdge);
-          grad.addColorStop(1, COLORS.black);
+          grad.addColorStop(0.5, COLORS.black);
+          grad.addColorStop(1, "#c2410c");
         } else {
           grad.addColorStop(0, COLORS.whiteEdge);
-          grad.addColorStop(1, COLORS.white);
+          grad.addColorStop(0.5, COLORS.white);
+          grad.addColorStop(1, "#d97706");
         }
         ctx.fillStyle = grad;
-        roundRect(ctx, x + 1, y + 1, width - 2, noteHeightPx - 2, 4);
-        ctx.fill();
-
-        // Glow
-        ctx.shadowColor = n.isBlack ? COLORS.black : COLORS.white;
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = "rgba(255,255,255,0.18)";
-        roundRect(ctx, x + 1, y + 1, width - 2, Math.min(4, noteHeightPx - 2), 4);
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 2;
+        roundRect(ctx, x + 1, y + 1, width - 2, noteHeightPx - 2, 5);
         ctx.fill();
         ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Top highlight strip
+        ctx.fillStyle = "rgba(255,255,255,0.32)";
+        roundRect(ctx, x + 2, y + 2, width - 4, Math.min(4, noteHeightPx - 4), 3);
+        ctx.fill();
+
+        // Outer glow when the note is approaching the hit line (< 0.4s away).
+        const distToHit = Math.max(0, hitY - (y + noteHeightPx));
+        if (distToHit < pixelsPerSecond * 0.4) {
+          const alpha = 1 - distToHit / (pixelsPerSecond * 0.4);
+          ctx.shadowColor = n.isBlack ? COLORS.black : COLORS.white;
+          ctx.shadowBlur = 16 * alpha;
+          ctx.strokeStyle = `rgba(255, 235, 178, ${alpha * 0.6})`;
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, x + 1, y + 1, width - 2, noteHeightPx - 2, 5);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
       }
 
       // Clock + progress text

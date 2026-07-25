@@ -1,45 +1,121 @@
 ---
-Task ID: C0-C6 (full autonomous build)
-Agent: GLM-5.2 full-stack agent
-Task: Build a fully client-side Next.js Piano Learning App (Free Play + guided Learning Mode with falling-notes visualizer + scoring), deploy-ready for Vercel, and push to https://github.com/PriskyBuild/Piano-Learn.git.
+Task ID: webDevReview-round-2
+Agent: GLM-5.2 webDevReview cron (every 15 min)
+Task: First recurring QA + feature-expansion round. Read worklog, run agent-browser QA, then independently choose the work focus (fix bugs or add features) and continue development. Mandated: improve styling with more details + add more features/functionality.
 
 Work Log:
-- C0 Scaffold: inspected existing Next.js 16 + React 19 + Tailwind v4 + shadcn/ui project at /home/z/my-project. Installed tone@15.1.22 and zustand@5.0.14. Wrote PLAN.md, DECISIONS.md, PROGRESS.md, README.md (with Vercel deploy section). Updated tsconfig.json (noImplicitAny:true), next.config.ts (reactStrictMode:true), .gitignore (allow .env.example). Wrote .env.example, vercel.json, public/favicon.svg. Updated src/app/layout.tsx (piano metadata, theme-color, viewport, favicon.svg). Added /api/health endpoint. Added piano-specific CSS (key gradients, press/next/wrong states, falling-note keyframes, custom scrollbar) to globals.css.
-- C1 Audio Core: wrote src/types/index.ts, src/lib/notes.ts (parseNote/formatNote/noteToMidi/midiToNote/noteToFrequency + generateKeyboard() that produces exactly 36 white + 25 black keys for C2..C7 with runtime invariant), src/lib/audio.ts (lazy import("tone"), Sampler with 30 Salamander samples, PolySynth fallback, Reverb+Volume graph, sustain with heldNotes), src/hooks/useAudioEngine.ts (React adapter with ensureReady/playNote/releaseNote/setSustain/setVolumeDb/setReverbWet/getTransport/nowSeconds).
-- C2 Piano UI: wrote src/lib/store.ts (Zustand store), src/lib/keyboard-map.ts (pure keyboardMap(octave)), src/components/Key.tsx + WhiteKey.tsx + BlackKey.tsx (accessible buttons with pointer capture, aria-labels, focus ring, depress/next/wrong visual states), src/components/KeyLabels.tsx, src/components/Piano.tsx (61-key container with ResizeObserver, computed black-key positioning, horizontal scroll on overflow), src/components/ModeToggle.tsx, src/components/Controls.tsx (volume, reverb, octave shift, sustain, note-names, key-hints), src/components/AppShell.tsx (header + mode toggle + audio-status badge + Piano + Controls + sticky footer).
-- C3 Free Play: wrote src/hooks/useKeyboardInput.ts (global keydown/keyup, ignores form fields + modifier combos, suppresses auto-repeat, handles Z/X octave shift, blur handler releases all held notes). Wired into AppShell.
-- C4 Learning Mode: wrote src/lib/songs.ts (4 songs: Twinkle, Ode to Joy, Jingle Bells, Happy Birthday with {id,title,artist,bpm,difficulty,description,notes}), src/hooks/useSongPlayer.ts (Tone.Transport scheduling, RAF loop for progress/next-note/missed-notes detection, tempo rescaling for both audio + visualizer, scoring with streak bonus), src/components/Visualizer.tsx (canvas-based falling notes with DPR-aware sizing, ResizeObserver, color-coded white/black, gradient + glow, hit-line), src/components/Scoreboard.tsx (Score/Accuracy/Streak + song-complete overlay with Replay/Next), src/components/SongSelector.tsx (card grid with difficulty badges). Replaced LearningPanel placeholder with full layout.
-- C5 Deploy + bug fixes: added allowedDevOrigins to next.config.ts. Ran final lint + typecheck green. Verified /api/health endpoint.
-- Found + fixed two critical bugs via Agent Browser self-verification:
-  1. Audio init blocked UI: initAudio() was awaiting the Salamander sample load. Refactored to use PolySynth fallback immediately and load Sampler in background. Added onAudioStateChange listener mechanism. Fixed Tone.js v15 Sampler API (use onload/onerror, not the removed "loaded" event).
-  2. Song player RAF loop never ran: useAudioEngine returned a fresh object every render → clearSchedule/stop identity changed every render → cleanup effect fired every render → stop() killed playback. Fixed by useMemo on useAudioEngine's return value + useSongPlayer uses a stopRef updated via effect so the song-change cleanup effect only depends on [song, resetScore].
-- Self-verification via Agent Browser:
-  - / returns 200, no console errors, no React hydration warnings.
-  - 36 white + 25 black = 61 keys (verified by counting DOM buttons).
-  - Clicking C4 plays correct pitch; audio badge transitions "Tap a key" → "Synth fallback" → "Piano samples loaded" within ~12s (30 Salamander samples 200 OK).
-  - Learning Mode: Ode to Joy → Play → Pause → progress 0%→47%→100% → "Song complete!" overlay shown.
-  - Correct press: C4 when nextNote=C4 → +102 points, hits=1, streak=1, advances.
-  - Wrong press: C5 when nextNote=C4 → score unchanged, streak=0, hint does NOT advance.
-  - Visualizer: amber/orange pixels (RGB ~248,173,22) drawing on canvas during playback.
-  - Mobile 375px: keyboard scrolls horizontally, keys 32×150px.
-  - Desktop 1280×800: footer sticky at bottom (totalH=800=viewportH).
-  - Short viewport 1280×400: footer pushed down naturally (totalH=586, viewportH=400, scrolls).
-  - Toggles: Note names → "C4" shows; Key hints → "A" shows; Octave up → hint moves from C4 to C5.
-  - Computer keyboard: dispatching keydown for "a" → C5 added to activeNotes; keyup → removed.
-- C6 Git push: pushed all commits to https://github.com/PriskyBuild/Piano-Learn.git (main branch). Added clean origin remote (no token in git config). User's GitHub PAT was used transiently only for the push.
+
+## 1. Project status assessment
+- Read previous worklog (C0-C6 full build). All checkpoints complete: scaffold, audio, 61-key piano, Free Play, Learning Mode + songs + visualizer + scoring, deploy config, git push to https://github.com/PriskyBuild/Piano-Learn.git.
+- Ran QA: dev server healthy (`/` returns 200), `bun run lint` clean, `bun run typecheck` clean, Agent Browser confirmed 36 white + 25 black = 61 keys, no console errors.
+- Took "before" screenshots (download/before-styling.png, download/before-learning.png) for visual baseline.
+- Identified gaps from the previous round's "Unresolved issues" list:
+  - Only 4 songs in the library
+  - No persistence (high scores, last-played song, settings lost on refresh)
+  - No theme toggle
+  - Visualizer was plain
+  - No keyboard-shortcuts help
+  - No stats panel
+
+## 2. Work focus chosen
+Two of the mandated asks ("improve styling with more details" + "add more features/functionality") were addressed in parallel via four feature tracks:
+
+### Track A — Expanded song library (4 → 9 songs)
+Added 5 new songs to src/lib/songs.ts:
+- Mary Had a Little Lamb (Beginner, 110 BPM)
+- When the Saints Go Marching In (Easy, 120 BPM)
+- Amazing Grace (Easy, 90 BPM)
+- Scarborough Fair (Intermediate, 80 BPM — Dorian modal)
+- Für Elise (Intermediate, 130 BPM — Beethoven opening theme with sharps)
+
+Verified: `grep -c '^    id: "' src/lib/songs.ts` returns 9 unique songs.
+
+### Track B — localStorage persistence (new file src/lib/persistence.ts)
+- Defined versioned schema (PersistedPrefs + PersistedStats).
+- `loadPrefs/savePrefs/loadStats/saveStats/bumpStat/recordHighScore/getHighScore/clearAll` helpers, all SSR-safe.
+- Refactored `src/lib/store.ts` to:
+  - Hydrate initial state from localStorage on first render (SSR-safe).
+  - Persist on every pref-mutating setter via a `persistPrefs(state)` helper.
+  - Add `theme`, `highScores`, `stats`, `commitHighScore`, `bumpStatField`, `refreshStats`, `resetAll`, `hydrated` fields.
+- Wired `useSongPlayer` to:
+  - Call `commitHighScore(song.id)` on song completion.
+  - Call `bumpStatField('secondsPlayed', elapsedSec)` + `bumpStatField('songsCompleted', 1)` on song completion.
+  - Call `bumpStatField('totalNotesPlayed', 1)` on every correct press.
+- Wired `Piano.tsx` to bump `totalNotesPlayed` on every Free Play press (so non-Learning clicks count too).
+- Wired `AppShell.tsx` to count Free Play sessions (one per mode-transition into "free").
+- Verified via Agent Browser:
+  - localStorage keys: `piano-app:v1` (prefs + highScores + theme), `piano-app:stats:v1` (lifetime totals).
+  - After reload: mode, stats, highScores all preserved.
+
+### Track C — Theme toggle (light/dark/system) with next-themes
+- Added `ThemeProvider` to `src/app/layout.tsx` (attribute="class", defaultTheme="dark", enableSystem, disableTransitionOnChange).
+- Created `src/components/ThemeToggle.tsx` — segmented control with Light/Dark/Auto options.
+  - **Critical bug fix**: initial implementation read `theme` from useTheme() during render → React 19 hydration mismatch. Refactored to a CSS-driven approach: render all 3 buttons always, use `html.light`/`html.dark`/`html:not(.light):not(.dark)` CSS attribute selectors to highlight the active one. No React state needed at render time → no hydration mismatch.
+- Added CSS in `globals.css` for `.piano-theme-toggle button[data-theme-choice]` highlighting via `html.light`/`html.dark` selectors.
+- Verified via Agent Browser: clicking Light → `<html class="light">`, theme saved to localStorage as "light". Clicking Dark → `<html class="dark">`.
+
+### Track D — Styling polish + 3 new UI components
+1. **ModeToggle**: rewrote with a sliding active indicator (gradient amber→orange pill that animates left/right via `transition-[left,width]`). Active icon scales up 110%. Much more tactile than the previous bg-color swap.
+2. **Visualizer**: richer canvas rendering — vertical gradient background (darker top → lighter near hit line), horizontal beat gridlines that scroll with song time, multi-stop note gradient (top→mid→bottom), drop shadow, top highlight strip, and an outer glow that intensifies as notes approach the hit line. Hit line now has a glow underlay + crisp line + end caps.
+3. **Header**: now `sticky top-0 z-30` so it stays visible while scrolling. Logo has ring + shadow. Compact on mobile.
+4. **SongSelector**: 5-column responsive grid (was 4). Added high-score ribbon (top-right corner) showing the score (e.g. "1.2k"). Added personal-best footer on each card showing best accuracy + streak. Logo has ring.
+5. **Scoreboard**: shows previous-best chip ("Previous best: 102 · 95%") above the stats grid. On song-complete, shows a "New personal best!" gradient ribbon when the score beats the previous high.
+6. **HelpModal** (new): Dialog with all 7 white-key + 5 black-key mappings as visual KeyCaps (letter + note name). Global shortcuts (Z/X). Triggered by a "?" button in the header OR the `?` / `Shift+/` keyboard shortcut. Closes on Escape.
+7. **StatsPanel** (new): Sheet (right-side drawer) with:
+   - Lifetime totals grid (notes played, songs completed, time played, Free Play sessions).
+   - "Best score" hero card (gradient amber, shows the user's top song + accuracy + streak).
+   - Scrollable list of all 9 songs with their high scores (or "—" placeholders).
+   - "Reset all stats" button with confirmation dialog.
+   - Triggered by a "Stats" button in the header.
+8. **Piano stage**: added wood-grain frame via `::before` pseudo-element with translate + shadow.
+
+## 3. Verification
+- `bun run lint` → clean (0 errors / 0 warnings).
+- `bun run typecheck` → clean.
+- Agent Browser end-to-end:
+  - `/` returns 200, no console errors, no React hydration warnings.
+  - 36 white + 25 black = 61 keys (verified via DOM count).
+  - Clicked C4 in Free Play → `totalNotesPlayed: 1` in localStorage.
+  - Opened Stats panel → shows "Notes played: 1", "0/9 with high score", all 9 songs listed.
+  - Switched to Learning mode → all 9 song cards visible (including Intermediate: Für Elise, Scarborough Fair).
+  - Selected Ode to Joy → pressed Play → Pause button appears, nextNote hint updates per note.
+  - localStorage after song: `songsCompleted: 1`, `secondsPlayed: 18`, `highScores.ode-to-joy` saved.
+  - Theme toggle: clicking Light → `<html class="light">`, theme saved to localStorage.
+  - Help modal: opens via header button, shows all 12 keyboard mappings + global shortcuts.
+  - Reload persistence: state survives page refresh (mode=learn, stats preserved, highScores preserved).
+- Screenshots saved: download/before-styling.png, download/before-learning.png, download/after-styling-light.png, download/after-styling-dark.png, download/after-learning.png.
+
+## 4. Files added / modified this round
+
+### New files (4)
+- src/lib/persistence.ts (localStorage layer + types)
+- src/components/ThemeToggle.tsx
+- src/components/HelpModal.tsx
+- src/components/StatsPanel.tsx
+
+### Modified files (8)
+- src/app/layout.tsx (ThemeProvider)
+- src/app/globals.css (theme toggle CSS, piano-stage wood frame, fade-in/pop animations)
+- src/lib/store.ts (full rewrite — hydrate from localStorage, persist on every pref change, add stats + highScores + theme + resetAll)
+- src/lib/songs.ts (5 new songs; 9 total)
+- src/hooks/useSongPlayer.ts (commitHighScore + bumpStatField on song complete + on each hit; playStartTsRef for seconds-played accounting)
+- src/components/AppShell.tsx (sticky header, ThemeToggle, StatsButton, HelpModal wiring, Free Play session counter)
+- src/components/ModeToggle.tsx (sliding gradient indicator + icon scale animation)
+- src/components/Visualizer.tsx (vertical gradient bg, beat gridlines, multi-stop note gradient, drop shadow, hit-line glow + caps, approach-glow on notes near hit line)
+- src/components/SongSelector.tsx (5-column grid, high-score ribbon, personal-best footer, logo ring)
+- src/components/Scoreboard.tsx (previous-best chip, "New personal best!" ribbon on song-complete)
+- src/components/Piano.tsx (bump totalNotesPlayed on Free Play press)
+
+## 5. Unresolved issues / risks for next phase
+- The Visualizer canvas still uses `requestAnimationFrame` with `async audio.getTransport()` per frame (~60 fps). Each frame awaits the audio module's promise. Could be optimized by caching the transport reference once the engine is ready, eliminating the per-frame await.
+- Songs library is still hardcoded TypeScript. Could be moved to a JSON file (`src/lib/songs.json`) to allow easier community contributions.
+- No metronome for Free Play (would help users practise timing without Learning Mode's song structure).
+- No "Practice Mode" — slow down a song to learn it without scoring pressure. Tempo slider (0.5×–1.5×) partially addresses this but a dedicated mode with pause/scrub would be more useful.
+- Audio engine doesn't lazy-load samples per octave (currently loads all 30 Salamander samples at once, ~5MB total). Could split into per-octave fetches.
+- No keyboard shortcut to open the Stats panel.
+- The high-score ribbon currently shows the raw number; for very high scores it could format with thousands separators.
 
 Stage Summary:
-- Build is COMPLETE: C0-C6 all done. App is at https://github.com/PriskyBuild/Piano-Learn.git.
-- All checkpoints met: scaffold ✓, audio ✓, 61-key piano ✓, free play ✓, learning mode + songs + visualizer + scoring ✓, deploy config ✓, git push ✓.
+- Build is feature-stable: 9 songs, persistent stats + high scores + theme + prefs, polished UI with animations, full keyboard-shortcuts help, sticky header, accessible stats drawer.
 - Lint clean, typecheck clean, runtime verified end-to-end via Agent Browser.
-- Vercel deploy is one-click ready: import the repo, Vercel auto-detects Next.js, no env vars needed.
-- SECURITY NOTE: the user pasted a GitHub PAT in plain text. They should revoke it at https://github.com/settings/tokens immediately.
-
-Unresolved issues / risks for next phase:
-- Songs library is hardcoded (4 songs). Could be expanded or moved to a JSON file.
-- Visualizer uses requestAnimationFrame with async audio.getTransport() per frame — could be optimized to cache the transport reference.
-- Salamander samples are ~5MB total — could be lazy-loaded per-octave.
-- No persistence: user's high score, last-played song etc. are lost on refresh. Could add localStorage.
-- No backend, so no leaderboard / sharing features.
-- No tests (per project rules: "do not write any test code").
-- The dev server emits a cosmetic cross-origin warning for the chat-preview origin (suppressed via allowedDevOrigins but the warning still appears for unknown subdomains).
+- Recommended next focus: metronome for Free Play + Practice Mode (song scrubbing) + transport-reference caching in Visualizer.

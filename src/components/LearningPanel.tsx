@@ -91,6 +91,7 @@ export function LearningPanel() {
             <div className="lg:col-span-2">
               <Scoreboard
                 complete={player.complete}
+                songId={songId}
                 onReplay={handleReplay}
                 onNext={handleNext}
               />
