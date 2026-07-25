@@ -63,6 +63,12 @@ export interface PianoStore {
   setTempo: (t: number) => void;
   isPlaying: boolean;
   setIsPlaying: (v: boolean) => void;
+  /** Practice mode — disables score penalty + enables loop. */
+  practiceMode: boolean;
+  setPracticeMode: (v: boolean) => void;
+  /** Loop the whole song when it ends (only effective in practice mode). */
+  loopSong: boolean;
+  setLoopSong: (v: boolean) => void;
   score: Score;
   setScore: (patch: Partial<Score>) => void;
   resetScore: (total?: number) => void;
@@ -233,6 +239,11 @@ export const usePianoStore = create<PianoStore>((set, get) => ({
   },
   isPlaying: false,
   setIsPlaying: (v) => set({ isPlaying: v }),
+
+  practiceMode: false,
+  setPracticeMode: (v) => set({ practiceMode: v }),
+  loopSong: false,
+  setLoopSong: (v) => set({ loopSong: v }),
 
   score: { ...initialScore },
   setScore: (patch) =>

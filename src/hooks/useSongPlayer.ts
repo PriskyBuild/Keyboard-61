@@ -111,9 +111,11 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
   const setIsPlaying = usePianoStore((s) => s.setIsPlaying);
   const pressNote = usePianoStore((s) => s.pressNote);
   const releaseNoteState = usePianoStore((s) => s.releaseNoteState);
+
   // Persistence hooks
   const commitHighScore = usePianoStore((s) => s.commitHighScore);
   const bumpStatField = usePianoStore((s) => s.bumpStatField);
+  // Practice mode + loop (read live via getState so we don't re-bind callbacks)
   const playStartTsRef = useRef<number | null>(null);
 
   const [isPlaying, setLocalIsPlaying] = useState(false);
@@ -273,22 +275,44 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
 
           // Song complete?
           if (now >= totalDurationSec / tempoRef.current + 0.5) {
-            await stop();
-            setComplete(true);
-            setNextNote(null);
-            // Persist: commit a high-score attempt + bump songs-completed +
-            // accumulated play-time. Only counts if the user actually played
-            // (hit at least one note) — otherwise it's just a playthrough.
-            if (song && playStartTsRef.current !== null) {
-              const elapsedSec = Math.round(
-                (Date.now() - playStartTsRef.current) / 1000,
-              );
-              playStartTsRef.current = null;
-              bumpStatField("secondsPlayed", elapsedSec);
-              bumpStatField("songsCompleted", 1);
-              commitHighScore(song.id);
+            // Practice mode + loop: auto-restart instead of completing.
+            const state = usePianoStore.getState();
+            if (state.practiceMode && state.loopSong && song) {
+              // Don't persist high scores in practice mode.
+              playStartTsRef.current = Date.now();
+              try {
+                const transport = await audio.getTransport();
+                transport.seconds = 0;
+                currentIndexRef.current = 0;
+                setProgress(0);
+                setNextNote(noteQueueRef.current[0]?.note ?? null);
+              } catch {
+                /* noop */
+              }
+              // Continue the RAF loop (don't return).
+            } else {
+              await stop();
+              setComplete(true);
+              setNextNote(null);
+              // Persist: commit a high-score attempt + bump songs-completed +
+              // accumulated play-time. Only counts if the user actually played
+              // (hit at least one note) — otherwise it's just a playthrough.
+              // Skip persistence in practice mode (no scoring).
+              if (
+                song &&
+                playStartTsRef.current !== null &&
+                !state.practiceMode
+              ) {
+                const elapsedSec = Math.round(
+                  (Date.now() - playStartTsRef.current) / 1000,
+                );
+                playStartTsRef.current = null;
+                bumpStatField("secondsPlayed", elapsedSec);
+                bumpStatField("songsCompleted", 1);
+                commitHighScore(song.id);
+              }
+              return;
             }
-            return;
           }
         } catch {
           /* transport not ready yet — try again next frame */
@@ -371,9 +395,12 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
         // Persistence: count this correct press toward lifetime notes played.
         bumpStatField("totalNotesPlayed", 1);
       } else {
-        // Wrong press.
-        flashWrong(note);
-        setScore({ streak: 0 });
+        // Wrong press — skip penalty in practice mode.
+        const state = usePianoStore.getState();
+        if (!state.practiceMode) {
+          flashWrong(note);
+          setScore({ streak: 0 });
+        }
       }
     },
     [pressNote, setScore, flashWrong, setNextNote, bumpStatField],

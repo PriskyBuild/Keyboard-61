@@ -25,6 +25,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { usePianoStore } from "@/lib/store";
+import { SONGS } from "@/lib/songs";
 import { useTheme } from "next-themes";
 import {
   Music2,
@@ -41,12 +42,14 @@ import {
   HelpCircle,
   BarChart3,
   Sparkles,
+  Award,
 } from "lucide-react";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const setMode = usePianoStore((s) => s.setMode);
+  const setCurrentSong = usePianoStore((s) => s.setCurrentSong);
   const toggleNoteNames = usePianoStore((s) => s.toggleNoteNames);
   const toggleKeyHints = usePianoStore((s) => s.toggleKeyHints);
   const toggleSustain = usePianoStore((s) => s.toggleSustain);
@@ -124,6 +127,13 @@ export function CommandPalette() {
             <span>Parent Dashboard</span>
           </CommandItem>
           <CommandItem
+            onSelect={() => go("/achievements")}
+            className="gap-2"
+          >
+            <Award className="h-4 w-4 text-amber-500" />
+            <span>Achievements</span>
+          </CommandItem>
+          <CommandItem
             onSelect={() => go("/help/microphone")}
             className="gap-2"
           >
@@ -155,6 +165,29 @@ export function CommandPalette() {
             <GraduationCap className="h-4 w-4 text-emerald-500" />
             <span>Switch to Learning Mode</span>
           </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Jump to song (Learning Mode)">
+          {SONGS.map((song) => (
+            <CommandItem
+              key={song.id}
+              onSelect={() => {
+                setMode("learn");
+                setCurrentSong(song);
+                setOpen(false);
+                router.push("/");
+              }}
+              className="gap-2"
+            >
+              <Music2 className="h-4 w-4 text-amber-500" />
+              <span className="flex-1 truncate">{song.title}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {song.bpm} BPM
+              </span>
+            </CommandItem>
+          ))}
         </CommandGroup>
 
         <CommandSeparator />

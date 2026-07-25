@@ -2,20 +2,15 @@
 // Practice Mode toggle — flips between "Scored" (default) and "Practice"
 // modes. In Practice mode:
 //   - Wrong notes don't penalise the score.
-//   - The visualizer slows notes down to 0.5× (already handled via tempo).
-//   - A "loop section" feature is enabled so the user can pick a range of
-//     notes to repeat. (For now, this is a UI affordance only — wiring the
-//     loop range to the song player is left as a future enhancement.)
-//
-// The toggle also writes to the Zustand store so the song player can read
-// the practice flag without re-binding its callbacks.
+//   - A "loop section" feature is enabled so the song auto-restarts when it
+//     ends (wired to the song player via the Zustand store).
 
 "use client";
 
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Repeat, Sparkles } from "lucide-react";
+import { usePianoStore } from "@/lib/store";
 
 export interface PracticeModeToggleProps {
   isPlaying: boolean;
@@ -26,8 +21,10 @@ export function PracticeModeToggle({
   isPlaying,
   onRestart,
 }: PracticeModeToggleProps) {
-  const [practice, setPractice] = useState(false);
-  const [loop, setLoop] = useState(false);
+  const practice = usePianoStore((s) => s.practiceMode);
+  const setPractice = usePianoStore((s) => s.setPracticeMode);
+  const loop = usePianoStore((s) => s.loopSong);
+  const setLoop = usePianoStore((s) => s.setLoopSong);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800/50">
@@ -62,7 +59,7 @@ export function PracticeModeToggle({
           <div className="flex items-center gap-2">
             <Repeat className="h-3 w-3 text-amber-500" />
             <span className="text-[11px] text-muted-foreground">
-              Loop whole song
+              Loop whole song (auto-restart)
             </span>
           </div>
           <Switch

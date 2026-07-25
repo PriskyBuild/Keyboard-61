@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Music2, Ear, GraduationCap, Trophy, Lock } from "lucide-react";
+import { Music2, Ear, GraduationCap, Trophy, Lock, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -24,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/listen", label: "Listen", icon: Ear },
   { href: "/curriculum", label: "Lessons", icon: GraduationCap },
   { href: "/stickers", label: "Stickers", icon: Trophy },
+  { href: "/achievements", label: "Awards", icon: Award },
   { href: "/parent", label: "Parent", icon: Lock },
 ];
 

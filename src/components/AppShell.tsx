@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Piano } from "@/components/Piano";
 import { Metronome } from "@/components/Metronome";
+import { HeroBanner } from "@/components/HeroBanner";
 import {
   CommandPalette,
   CommandPaletteHint,
@@ -56,6 +57,9 @@ export default function AppShell() {
       <Header onOpenHelp={() => helpModal.setOpen(true)} />
 
       <main className="flex flex-1 flex-col gap-6 px-3 py-6 sm:px-6 lg:px-8">
+        {/* Hero banner — Free Play only, highlights Phase 2 features */}
+        {mode === "free" ? <HeroBanner /> : null}
+
         {/* Mode toggle + status row */}
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
           <ModeToggle />
