@@ -316,3 +316,74 @@ html:not(.light):not(.dark) .piano-theme-toggle button[data-theme-choice="system
   100% { transform: translateY(-40px) scale(1.4); opacity: 0; }
 }
 .animate-coin-pop { animation: coin-pop 0.8s ease-out forwards; }
+
+/* ============================================================
+ * Round 3 polish — gradient header, glow effects, micro-animations
+ * ========================================================== */
+
+/* Header gradient backdrop — animated, very subtle */
+@keyframes header-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+.header-gradient {
+  background: linear-gradient(
+    110deg,
+    oklch(0.97 0.01 80) 0%,
+    oklch(0.95 0.02 70) 30%,
+    oklch(0.97 0.015 90) 60%,
+    oklch(0.96 0.012 60) 100%
+  );
+  background-size: 200% 200%;
+  animation: header-shimmer 12s ease-in-out infinite;
+}
+.dark .header-gradient {
+  background: linear-gradient(
+    110deg,
+    oklch(0.18 0.02 270) 0%,
+    oklch(0.15 0.025 280) 30%,
+    oklch(0.17 0.018 260) 60%,
+    oklch(0.16 0.022 290) 100%
+  );
+  background-size: 200% 200%;
+  animation: header-shimmer 12s ease-in-out infinite;
+}
+
+/* Floating note badge above visualizer */
+@keyframes float-note {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+.animate-float-note { animation: float-note 2.5s ease-in-out infinite; }
+
+/* Mascot entrance — slides up + fades in */
+@keyframes mascot-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-mascot-enter { animation: mascot-enter 0.5s ease-out both; }
+
+/* Glow ring around the mascot in "happy" state */
+@keyframes happy-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.769 0.188 70.08 / 0); }
+  50%      { box-shadow: 0 0 24px 8px oklch(0.769 0.188 70.08 / 0.25); }
+}
+.animate-happy-glow { animation: happy-glow 1.6s ease-in-out infinite; }
+
+/* Card hover lift — used on song cards + lesson cards */
+.card-lift {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -8px oklch(0 0 0 / 0.15);
+}
+
+/* Pulse-ring for active mic indicator */
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}

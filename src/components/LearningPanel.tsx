@@ -15,6 +15,7 @@ import { usePianoStore } from "@/lib/store";
 import { SONGS, findSongById } from "@/lib/songs";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { PracticeModeToggle } from "@/components/PracticeModeToggle";
 import {
   Play,
   Pause,
@@ -148,6 +149,12 @@ export function LearningPanel() {
                   <span>1.5×</span>
                 </div>
               </div>
+
+              {/* Practice Mode toggle */}
+              <PracticeModeToggle
+                isPlaying={player.isPlaying}
+                onRestart={handleReplay}
+              />
 
               {/* Song title + back */}
               <div className="mt-1 flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2 dark:border-slate-800">

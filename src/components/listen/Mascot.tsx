@@ -31,11 +31,11 @@ export function Mascot({
   className,
 }: MascotProps) {
   return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
+    <div className={cn("flex flex-col items-center gap-2 animate-mascot-enter", className)}>
       <div
         className={cn(
-          "relative",
-          state === "happy" && "animate-mascot-bounce",
+          "relative rounded-full",
+          state === "happy" && "animate-mascot-bounce animate-happy-glow",
           state === "encourage" && "animate-mascot-nod",
           state === "listening" && "animate-mascot-breathe",
           state === "idle" && "animate-mascot-breathe",

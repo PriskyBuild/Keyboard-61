@@ -35,7 +35,7 @@ export function LessonCard({
           "group relative flex flex-col gap-2 overflow-hidden rounded-2xl border p-4 transition-all",
           completed
             ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white shadow-sm dark:border-emerald-500/40 dark:from-emerald-500/10 dark:to-slate-900"
-            : "border-amber-300 bg-white shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:border-amber-500/40 dark:bg-slate-900",
+            : "border-amber-300 bg-white shadow-sm card-lift dark:border-amber-500/40 dark:bg-slate-900",
           className,
         )}
       >

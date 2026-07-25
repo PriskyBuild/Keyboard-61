@@ -98,16 +98,30 @@ export function FallingNotesKid({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Cache the Tone transport so we don't await an async import on every
+    // animation frame. Tone.js transport reference is stable once loaded.
+    let transportCache: { seconds: number } | null = null;
+    let transportCacheLoading = false;
+
+    const getTransportSeconds = async (): Promise<number> => {
+      if (transportCache) return transportCache.seconds;
+      if (transportCacheLoading) return 0;
+      transportCacheLoading = true;
+      try {
+        const t = await audio.getTransport();
+        transportCache = t;
+        return t.seconds;
+      } catch {
+        return 0;
+      } finally {
+        transportCacheLoading = false;
+      }
+    };
+
     const renderFrame = async () => {
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
-      let transportSec = 0;
-      try {
-        const transport = await audio.getTransport();
-        transportSec = transport.seconds;
-      } catch {
-        transportSec = 0;
-      }
+      const transportSec = await getTransportSeconds();
 
       // Background gradient
       const bgGrad = ctx.createLinearGradient(0, 0, 0, h);

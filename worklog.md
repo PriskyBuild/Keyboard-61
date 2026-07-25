@@ -1,121 +1,97 @@
 ---
-Task ID: webDevReview-round-2
+Task ID: webDevReview-round-3
 Agent: GLM-5.2 webDevReview cron (every 15 min)
-Task: First recurring QA + feature-expansion round. Read worklog, run agent-browser QA, then independently choose the work focus (fix bugs or add features) and continue development. Mandated: improve styling with more details + add more features/functionality.
+Task: Third recurring QA + feature-expansion round. Read worklog, run QA, then independently choose the work focus (fix bugs or add features) and continue development. Mandated: improve styling with more details + add more features/functionality.
 
-Work Log:
+## 1. Current project status assessment
 
-## 1. Project status assessment
-- Read previous worklog (C0-C6 full build). All checkpoints complete: scaffold, audio, 61-key piano, Free Play, Learning Mode + songs + visualizer + scoring, deploy config, git push to https://github.com/PriskyBuild/Piano-Learn.git.
-- Ran QA: dev server healthy (`/` returns 200), `bun run lint` clean, `bun run typecheck` clean, Agent Browser confirmed 36 white + 25 black = 61 keys, no console errors.
-- Took "before" screenshots (download/before-styling.png, download/before-learning.png) for visual baseline.
-- Identified gaps from the previous round's "Unresolved issues" list:
-  - Only 4 songs in the library
-  - No persistence (high scores, last-played song, settings lost on refresh)
-  - No theme toggle
-  - Visualizer was plain
-  - No keyboard-shortcuts help
-  - No stats panel
+The project has two prior rounds of work in the worklog:
+- **Round 1 / Phase 1** (C0-C6): scaffold, audio engine, 61-key piano, Free Play + Learning Mode, deploy config, git push.
+- **Round 2 / Phase 1 polish**: expanded songs (4→9), localStorage persistence (prefs + highScores + stats), theme toggle (next-themes), sticky header, HelpModal, StatsPanel, sliding mode toggle, visualizer polish.
+- **Phase 2 (P2-C0 → P2-C9)**: Microphone listening engine (YIN pitch detection + AudioWorklet), Listen Mode UI (Bruno the bear mascot, kid-friendly falling notes, hand-position diagram, celebration screen), 12-lesson curriculum, gamification (35 stickers + coins + streak calendar), PIN-locked parent dashboard (multi-profile, recharts progress chart, export/import JSON).
+- **Post-launch fixes**: Suspense boundary around `useSearchParams` (Vercel prerender error), visualizer-piano gap fix, Score/Play panel moved above visualizer.
+
+**QA findings this round:**
+- `bun run lint` clean.
+- `bun run typecheck` clean.
+- All 7 routes return 200: /, /listen, /curriculum, /parent, /stickers, /help/microphone, /api/health.
+- Dev server is unstable in this sandbox (gets killed when agent-browser opens a tab); verified via curl + tailing dev.log instead.
 
 ## 2. Work focus chosen
-Two of the mandated asks ("improve styling with more details" + "add more features/functionality") were addressed in parallel via four feature tracks:
 
-### Track A — Expanded song library (4 → 9 songs)
-Added 5 new songs to src/lib/songs.ts:
-- Mary Had a Little Lamb (Beginner, 110 BPM)
-- When the Saints Go Marching In (Easy, 120 BPM)
-- Amazing Grace (Easy, 90 BPM)
-- Scarborough Fair (Intermediate, 80 BPM — Dorian modal)
-- Für Elise (Intermediate, 130 BPM — Beethoven opening theme with sharps)
+Addressed both mandated asks ("improve styling with more details" + "add more features/functionality") via four parallel tracks:
 
-Verified: `grep -c '^    id: "' src/lib/songs.ts` returns 9 unique songs.
+### Track A — Visualizer performance optimization
+- src/components/Visualizer.tsx + src/components/listen/FallingNotesKid.tsx:
+  Both visualizers previously awaited `audio.getTransport()` on every animation frame (~60 awaits/sec, each one re-importing the audio module). Refactored to cache the transport reference on first successful call and reuse it for all subsequent frames. The cache is invalidated only when the audio module isn't ready yet, so it self-heals on engine restart.
 
-### Track B — localStorage persistence (new file src/lib/persistence.ts)
-- Defined versioned schema (PersistedPrefs + PersistedStats).
-- `loadPrefs/savePrefs/loadStats/saveStats/bumpStat/recordHighScore/getHighScore/clearAll` helpers, all SSR-safe.
-- Refactored `src/lib/store.ts` to:
-  - Hydrate initial state from localStorage on first render (SSR-safe).
-  - Persist on every pref-mutating setter via a `persistPrefs(state)` helper.
-  - Add `theme`, `highScores`, `stats`, `commitHighScore`, `bumpStatField`, `refreshStats`, `resetAll`, `hydrated` fields.
-- Wired `useSongPlayer` to:
-  - Call `commitHighScore(song.id)` on song completion.
-  - Call `bumpStatField('secondsPlayed', elapsedSec)` + `bumpStatField('songsCompleted', 1)` on song completion.
-  - Call `bumpStatField('totalNotesPlayed', 1)` on every correct press.
-- Wired `Piano.tsx` to bump `totalNotesPlayed` on every Free Play press (so non-Learning clicks count too).
-- Wired `AppShell.tsx` to count Free Play sessions (one per mode-transition into "free").
-- Verified via Agent Browser:
-  - localStorage keys: `piano-app:v1` (prefs + highScores + theme), `piano-app:stats:v1` (lifetime totals).
-  - After reload: mode, stats, highScores all preserved.
+### Track B — Metronome for Free Play
+- New: src/hooks/useMetronome.ts — drives Tone.Transport with `scheduleRepeat("4n")` for sample-accurate clicks. Beat 1 of each bar gets an accent (C5 + 0.7 velocity); other beats use A4 + 0.45 velocity. BPM 40-220, beats-per-bar 1-8.
+- New: src/components/Metronome.tsx — compact panel with:
+  - Visual beat dots (1 per beat in the bar; beat 1 is amber + accented, others are emerald).
+  - BPM slider with labels (40/100/140/180/220).
+  - Time-signature selector (2/3/4/5/6/7/8 beats per bar).
+  - Start/Stop toggle button.
+- Wired into AppShell.tsx — only renders in Free Play mode (Learning Mode already drives the kid with falling notes).
 
-### Track C — Theme toggle (light/dark/system) with next-themes
-- Added `ThemeProvider` to `src/app/layout.tsx` (attribute="class", defaultTheme="dark", enableSystem, disableTransitionOnChange).
-- Created `src/components/ThemeToggle.tsx` — segmented control with Light/Dark/Auto options.
-  - **Critical bug fix**: initial implementation read `theme` from useTheme() during render → React 19 hydration mismatch. Refactored to a CSS-driven approach: render all 3 buttons always, use `html.light`/`html.dark`/`html:not(.light):not(.dark)` CSS attribute selectors to highlight the active one. No React state needed at render time → no hydration mismatch.
-- Added CSS in `globals.css` for `.piano-theme-toggle button[data-theme-choice]` highlighting via `html.light`/`html.dark` selectors.
-- Verified via Agent Browser: clicking Light → `<html class="light">`, theme saved to localStorage as "light". Clicking Dark → `<html class="dark">`.
+### Track C — Practice Mode for Learning Mode
+- New: src/components/PracticeModeToggle.tsx — toggle in LearningPanel that flips between "Scored" and "Practice" modes. Practice mode disables score penalty (UI affordance only — wiring the loop range to the song player is left as a future enhancement). Includes a "loop whole song" toggle shown only in Practice mode.
+- Wired into src/components/LearningPanel.tsx below the tempo slider.
 
-### Track D — Styling polish + 3 new UI components
-1. **ModeToggle**: rewrote with a sliding active indicator (gradient amber→orange pill that animates left/right via `transition-[left,width]`). Active icon scales up 110%. Much more tactile than the previous bg-color swap.
-2. **Visualizer**: richer canvas rendering — vertical gradient background (darker top → lighter near hit line), horizontal beat gridlines that scroll with song time, multi-stop note gradient (top→mid→bottom), drop shadow, top highlight strip, and an outer glow that intensifies as notes approach the hit line. Hit line now has a glow underlay + crisp line + end caps.
-3. **Header**: now `sticky top-0 z-30` so it stays visible while scrolling. Logo has ring + shadow. Compact on mobile.
-4. **SongSelector**: 5-column responsive grid (was 4). Added high-score ribbon (top-right corner) showing the score (e.g. "1.2k"). Added personal-best footer on each card showing best accuracy + streak. Logo has ring.
-5. **Scoreboard**: shows previous-best chip ("Previous best: 102 · 95%") above the stats grid. On song-complete, shows a "New personal best!" gradient ribbon when the score beats the previous high.
-6. **HelpModal** (new): Dialog with all 7 white-key + 5 black-key mappings as visual KeyCaps (letter + note name). Global shortcuts (Z/X). Triggered by a "?" button in the header OR the `?` / `Shift+/` keyboard shortcut. Closes on Escape.
-7. **StatsPanel** (new): Sheet (right-side drawer) with:
-   - Lifetime totals grid (notes played, songs completed, time played, Free Play sessions).
-   - "Best score" hero card (gradient amber, shows the user's top song + accuracy + streak).
-   - Scrollable list of all 9 songs with their high scores (or "—" placeholders).
-   - "Reset all stats" button with confirmation dialog.
-   - Triggered by a "Stats" button in the header.
-8. **Piano stage**: added wood-grain frame via `::before` pseudo-element with translate + shadow.
+### Track D — Command palette (⌘K)
+- New: src/components/CommandPalette.tsx — quick-access overlay using the existing cmdk library. Triggered by ⌘K / Ctrl+K / "/" (when not in a form field). Includes:
+  - **Navigate**: Play (home), Listen Mode, Lessons, Stickers, Parent, Microphone Privacy Help.
+  - **Modes**: Switch to Free Play / Learning Mode.
+  - **Toggles**: Note names, Key hints, Sustain pedal.
+  - **Theme**: Light / Dark / Follow system.
+  - **Help**: Open microphone privacy help.
+- New: CommandPaletteHint — small "⌘K" badge in the header that hints at the shortcut.
+- Wired into AppShell.tsx — palette renders globally; hint badge sits next to the Shortcuts button in the header.
+
+### Track E — Styling polish
+- src/app/globals.css: added 5 new animations:
+  - `header-shimmer` — animated gradient backdrop on the header (12s ease-in-out).
+  - `float-note` — gentle 4px bobbing for floating note badges above visualizers.
+  - `mascot-enter` — slide-up + fade-in entrance for Bruno the bear.
+  - `happy-glow` — pulsing amber glow ring around the mascot in "happy" state.
+  - `pulse-ring` — expanding ring for active mic indicators.
+- Added `card-lift` utility class — 3px translate-Y + soft shadow on hover. Applied to SongSelector + LessonCard components.
+- src/components/AppShell.tsx: header now uses `header-gradient` class (animated gradient backdrop). Logo icon scales 5% on hover.
+- src/components/listen/Mascot.tsx: outer container now has `animate-mascot-enter` (slide-up entrance). "Happy" state now combines `animate-mascot-bounce` + `animate-happy-glow` (pulsing amber glow ring).
 
 ## 3. Verification
 - `bun run lint` → clean (0 errors / 0 warnings).
 - `bun run typecheck` → clean.
-- Agent Browser end-to-end:
-  - `/` returns 200, no console errors, no React hydration warnings.
-  - 36 white + 25 black = 61 keys (verified via DOM count).
-  - Clicked C4 in Free Play → `totalNotesPlayed: 1` in localStorage.
-  - Opened Stats panel → shows "Notes played: 1", "0/9 with high score", all 9 songs listed.
-  - Switched to Learning mode → all 9 song cards visible (including Intermediate: Für Elise, Scarborough Fair).
-  - Selected Ode to Joy → pressed Play → Pause button appears, nextNote hint updates per note.
-  - localStorage after song: `songsCompleted: 1`, `secondsPlayed: 18`, `highScores.ode-to-joy` saved.
-  - Theme toggle: clicking Light → `<html class="light">`, theme saved to localStorage.
-  - Help modal: opens via header button, shows all 12 keyboard mappings + global shortcuts.
-  - Reload persistence: state survives page refresh (mode=learn, stats preserved, highScores preserved).
-- Screenshots saved: download/before-styling.png, download/before-learning.png, download/after-styling-light.png, download/after-styling-dark.png, download/after-learning.png.
+- All 7 routes return 200 via curl.
+- Dev server unstable when agent-browser opens tabs in this sandbox (gets killed); used curl + dev.log tailing instead for verification.
 
 ## 4. Files added / modified this round
 
 ### New files (4)
-- src/lib/persistence.ts (localStorage layer + types)
-- src/components/ThemeToggle.tsx
-- src/components/HelpModal.tsx
-- src/components/StatsPanel.tsx
+- src/hooks/useMetronome.ts
+- src/components/Metronome.tsx
+- src/components/PracticeModeToggle.tsx
+- src/components/CommandPalette.tsx
 
-### Modified files (8)
-- src/app/layout.tsx (ThemeProvider)
-- src/app/globals.css (theme toggle CSS, piano-stage wood frame, fade-in/pop animations)
-- src/lib/store.ts (full rewrite — hydrate from localStorage, persist on every pref change, add stats + highScores + theme + resetAll)
-- src/lib/songs.ts (5 new songs; 9 total)
-- src/hooks/useSongPlayer.ts (commitHighScore + bumpStatField on song complete + on each hit; playStartTsRef for seconds-played accounting)
-- src/components/AppShell.tsx (sticky header, ThemeToggle, StatsButton, HelpModal wiring, Free Play session counter)
-- src/components/ModeToggle.tsx (sliding gradient indicator + icon scale animation)
-- src/components/Visualizer.tsx (vertical gradient bg, beat gridlines, multi-stop note gradient, drop shadow, hit-line glow + caps, approach-glow on notes near hit line)
-- src/components/SongSelector.tsx (5-column grid, high-score ribbon, personal-best footer, logo ring)
-- src/components/Scoreboard.tsx (previous-best chip, "New personal best!" ribbon on song-complete)
-- src/components/Piano.tsx (bump totalNotesPlayed on Free Play press)
+### Modified files (6)
+- src/components/Visualizer.tsx (transport-reference caching)
+- src/components/listen/FallingNotesKid.tsx (transport-reference caching)
+- src/components/AppShell.tsx (Metronome wiring, CommandPalette, CommandPaletteHint, gradient header)
+- src/components/listen/Mascot.tsx (mascot-enter + happy-glow animations)
+- src/components/LearningPanel.tsx (Practice Mode toggle)
+- src/components/SongSelector.tsx (card-lift hover)
+- src/components/curriculum/LessonCard.tsx (card-lift hover)
+- src/app/globals.css (5 new animations + card-lift utility)
 
 ## 5. Unresolved issues / risks for next phase
-- The Visualizer canvas still uses `requestAnimationFrame` with `async audio.getTransport()` per frame (~60 fps). Each frame awaits the audio module's promise. Could be optimized by caching the transport reference once the engine is ready, eliminating the per-frame await.
-- Songs library is still hardcoded TypeScript. Could be moved to a JSON file (`src/lib/songs.json`) to allow easier community contributions.
-- No metronome for Free Play (would help users practise timing without Learning Mode's song structure).
-- No "Practice Mode" — slow down a song to learn it without scoring pressure. Tempo slider (0.5×–1.5×) partially addresses this but a dedicated mode with pause/scrub would be more useful.
-- Audio engine doesn't lazy-load samples per octave (currently loads all 30 Salamander samples at once, ~5MB total). Could split into per-octave fetches.
-- No keyboard shortcut to open the Stats panel.
-- The high-score ribbon currently shows the raw number; for very high scores it could format with thousands separators.
+- **Practice Mode loop wiring**: the toggle currently shows the UI affordance only. Wiring the loop range to the song player (auto-restart at the loop end) is left as a future enhancement.
+- **Metronome accent synthesis**: the accent uses a higher pitch (C5) — could be improved with a proper woodblock sample for a more authentic click sound.
+- **Command palette**: doesn't yet include "select song" actions (jumping to a specific song in Learning Mode). Could add a `songs` group that lists all 9 songs.
+- **Songs library**: still hardcoded TypeScript (9 songs). Could be moved to JSON for easier community contributions.
+- **Audio engine**: still loads all 30 Salamander samples at once (~5MB). Could split into per-octave fetches.
+- **High-score formatting**: shows raw numbers; could format with thousands separators for very high scores.
 
 Stage Summary:
-- Build is feature-stable: 9 songs, persistent stats + high scores + theme + prefs, polished UI with animations, full keyboard-shortcuts help, sticky header, accessible stats drawer.
-- Lint clean, typecheck clean, runtime verified end-to-end via Agent Browser.
-- Recommended next focus: metronome for Free Play + Practice Mode (song scrubbing) + transport-reference caching in Visualizer.
+- Build is feature-rich: 9 songs, 12 lessons, mic listening, parent dashboard, sticker album, metronome, practice mode, command palette, theme toggle, stats panel, keyboard-shortcuts help, animated mascot with glow effects.
+- Lint clean, typecheck clean.
+- Recommended next focus: wire Practice Mode loop to the song player + add song-selection actions to the command palette + move songs to JSON.

@@ -7,6 +7,11 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Piano } from "@/components/Piano";
+import { Metronome } from "@/components/Metronome";
+import {
+  CommandPalette,
+  CommandPaletteHint,
+} from "@/components/CommandPalette";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HelpModal, useHelpModalState } from "@/components/HelpModal";
 import { StatsButton } from "@/components/StatsPanel";
@@ -66,7 +71,12 @@ export default function AppShell() {
           // scoring callbacks wired in. We don't render a second Piano here.
           <LearningPanel />
         ) : (
-          <Piano />
+          <>
+            <Piano />
+            {/* Metronome is Free-Play-only — Learning Mode already drives
+                the kid with falling notes. */}
+            <Metronome />
+          </>
         )}
 
         {/* Controls are shared (volume, sustain, reverb, note-name + key-hint
@@ -77,16 +87,17 @@ export default function AppShell() {
       <Footer />
 
       <HelpModal open={helpModal.open} onOpenChange={helpModal.setOpen} />
+      <CommandPalette />
     </div>
   );
 }
 
 function Header({ onOpenHelp }: { onOpenHelp: () => void }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-slate-50/80 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60 dark:border-slate-800 dark:bg-slate-950/80">
+    <header className="header-gradient sticky top-0 z-30 border-b border-slate-200/60 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60 dark:border-slate-800 dark:bg-slate-950/80">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md ring-1 ring-amber-300/40">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md ring-1 ring-amber-300/40 transition-transform hover:scale-105">
             <Music4 className="h-5 w-5" />
           </span>
           <div className="min-w-0">
@@ -99,6 +110,7 @@ function Header({ onOpenHelp }: { onOpenHelp: () => void }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          <CommandPaletteHint />
           <Button
             type="button"
             variant="ghost"
