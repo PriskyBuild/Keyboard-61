@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Piano">
+  <rect width="64" height="64" rx="10" fill="#0f172a"/>
+  <g>
+    <!-- white keys -->
+    <rect x="6"  y="12" width="9" height="44" rx="1.5" fill="#f8fafc"/>
+    <rect x="16" y="12" width="9" height="44" rx="1.5" fill="#f8fafc"/>
+    <rect x="26" y="12" width="9" height="44" rx="1.5" fill="#f8fafc"/>
+    <rect x="36" y="12" width="9" height="44" rx="1.5" fill="#f8fafc"/>
+    <rect x="46" y="12" width="9" height="44" rx="1.5" fill="#f8fafc"/>
+    <!-- black keys -->
+    <rect x="13" y="12" width="5" height="28" rx="1" fill="#0b1220"/>
+    <rect x="23" y="12" width="5" height="28" rx="1" fill="#0b1220"/>
+    <rect x="43" y="12" width="5" height="28" rx="1" fill="#0b1220"/>
+    <rect x="53" y="12" width="5" height="28" rx="1" fill="#0b1220"/>
+  </g>
+  <!-- accent stripe -->
+  <rect x="6" y="56" width="49" height="3" rx="1.5" fill="#f59e0b"/>
+</svg>

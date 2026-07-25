@@ -1,0 +1,213 @@
+// MIT License — Piano Learning App
+// Hardcoded song library. Each song has notes [{note, duration, start}] in
+// beats (quarter note = 1 beat). The song player hook converts beats to
+// seconds using the song's BPM and the user's tempo multiplier.
+
+import type { Song } from "@/types";
+
+export const SONGS: Song[] = [
+  {
+    id: "twinkle",
+    title: "Twinkle Twinkle Little Star",
+    artist: "Traditional",
+    bpm: 100,
+    difficulty: "Beginner",
+    description: "The classic nursery rhyme. Great first song.",
+    notes: [
+      // Phrase 1: Twinkle, twinkle, little star
+      { note: "C4", duration: 1, start: 0 },
+      { note: "C4", duration: 1, start: 1 },
+      { note: "G4", duration: 1, start: 2 },
+      { note: "G4", duration: 1, start: 3 },
+      { note: "A4", duration: 1, start: 4 },
+      { note: "A4", duration: 1, start: 5 },
+      { note: "G4", duration: 2, start: 6 },
+      // Phrase 2: How I wonder what you are
+      { note: "F4", duration: 1, start: 8 },
+      { note: "F4", duration: 1, start: 9 },
+      { note: "E4", duration: 1, start: 10 },
+      { note: "E4", duration: 1, start: 11 },
+      { note: "D4", duration: 1, start: 12 },
+      { note: "D4", duration: 1, start: 13 },
+      { note: "C4", duration: 2, start: 14 },
+      // Phrase 3: Up above the world so high
+      { note: "G4", duration: 1, start: 16 },
+      { note: "G4", duration: 1, start: 17 },
+      { note: "F4", duration: 1, start: 18 },
+      { note: "F4", duration: 1, start: 19 },
+      { note: "E4", duration: 1, start: 20 },
+      { note: "E4", duration: 1, start: 21 },
+      { note: "D4", duration: 2, start: 22 },
+      // Phrase 4: Like a diamond in the sky
+      { note: "G4", duration: 1, start: 24 },
+      { note: "G4", duration: 1, start: 25 },
+      { note: "F4", duration: 1, start: 26 },
+      { note: "F4", duration: 1, start: 27 },
+      { note: "E4", duration: 1, start: 28 },
+      { note: "E4", duration: 1, start: 29 },
+      { note: "D4", duration: 2, start: 30 },
+      // Phrase 5: Twinkle, twinkle, little star (repeat)
+      { note: "C4", duration: 1, start: 32 },
+      { note: "C4", duration: 1, start: 33 },
+      { note: "G4", duration: 1, start: 34 },
+      { note: "G4", duration: 1, start: 35 },
+      { note: "A4", duration: 1, start: 36 },
+      { note: "A4", duration: 1, start: 37 },
+      { note: "G4", duration: 2, start: 38 },
+      // Phrase 6: How I wonder what you are
+      { note: "F4", duration: 1, start: 40 },
+      { note: "F4", duration: 1, start: 41 },
+      { note: "E4", duration: 1, start: 42 },
+      { note: "E4", duration: 1, start: 43 },
+      { note: "D4", duration: 1, start: 44 },
+      { note: "D4", duration: 1, start: 45 },
+      { note: "C4", duration: 2, start: 46 },
+    ],
+  },
+  {
+    id: "ode-to-joy",
+    title: "Ode to Joy",
+    artist: "Ludwig van Beethoven",
+    bpm: 110,
+    difficulty: "Easy",
+    description: "Beethoven's Ninth Symphony, fourth movement theme.",
+    notes: [
+      { note: "E4", duration: 1, start: 0 },
+      { note: "E4", duration: 1, start: 1 },
+      { note: "F4", duration: 1, start: 2 },
+      { note: "G4", duration: 1, start: 3 },
+      { note: "G4", duration: 1, start: 4 },
+      { note: "F4", duration: 1, start: 5 },
+      { note: "E4", duration: 1, start: 6 },
+      { note: "D4", duration: 1, start: 7 },
+      { note: "C4", duration: 1, start: 8 },
+      { note: "C4", duration: 1, start: 9 },
+      { note: "D4", duration: 1, start: 10 },
+      { note: "E4", duration: 1, start: 11 },
+      { note: "E4", duration: 1.5, start: 12 },
+      { note: "D4", duration: 0.5, start: 13.5 },
+      { note: "D4", duration: 2, start: 14 },
+      { note: "E4", duration: 1, start: 16 },
+      { note: "E4", duration: 1, start: 17 },
+      { note: "F4", duration: 1, start: 18 },
+      { note: "G4", duration: 1, start: 19 },
+      { note: "G4", duration: 1, start: 20 },
+      { note: "F4", duration: 1, start: 21 },
+      { note: "E4", duration: 1, start: 22 },
+      { note: "D4", duration: 1, start: 23 },
+      { note: "C4", duration: 1, start: 24 },
+      { note: "C4", duration: 1, start: 25 },
+      { note: "D4", duration: 1, start: 26 },
+      { note: "E4", duration: 1, start: 27 },
+      { note: "D4", duration: 1.5, start: 28 },
+      { note: "C4", duration: 0.5, start: 29.5 },
+      { note: "C4", duration: 2, start: 30 },
+    ],
+  },
+  {
+    id: "jingle-bells",
+    title: "Jingle Bells",
+    artist: "James Lord Pierpont",
+    bpm: 120,
+    difficulty: "Easy",
+    description: "Holiday favourite — chorus only.",
+    notes: [
+      { note: "E4", duration: 1, start: 0 },
+      { note: "E4", duration: 1, start: 1 },
+      { note: "E4", duration: 2, start: 2 },
+      { note: "E4", duration: 1, start: 4 },
+      { note: "E4", duration: 1, start: 5 },
+      { note: "E4", duration: 2, start: 6 },
+      { note: "E4", duration: 1, start: 8 },
+      { note: "G4", duration: 1, start: 9 },
+      { note: "C4", duration: 1.5, start: 10 },
+      { note: "D4", duration: 0.5, start: 11.5 },
+      { note: "E4", duration: 4, start: 12 },
+      // F F F F F E E E E E D D E D G
+      { note: "F4", duration: 1, start: 16 },
+      { note: "F4", duration: 1, start: 17 },
+      { note: "F4", duration: 1, start: 18 },
+      { note: "F4", duration: 1, start: 19 },
+      { note: "F4", duration: 1, start: 20 },
+      { note: "E4", duration: 1, start: 21 },
+      { note: "E4", duration: 1, start: 22 },
+      { note: "E4", duration: 1, start: 23 },
+      { note: "E4", duration: 0.5, start: 24 },
+      { note: "E4", duration: 0.5, start: 24.5 },
+      { note: "E4", duration: 0.5, start: 25 },
+      { note: "E4", duration: 0.5, start: 25.5 },
+      // D D E D G
+      { note: "D4", duration: 1, start: 26 },
+      { note: "D4", duration: 1, start: 27 },
+      { note: "E4", duration: 1, start: 28 },
+      { note: "D4", duration: 1, start: 29 },
+      { note: "G4", duration: 2, start: 30 },
+      // E E E E E E E G C D E
+      { note: "E4", duration: 1, start: 32 },
+      { note: "E4", duration: 1, start: 33 },
+      { note: "E4", duration: 2, start: 34 },
+      { note: "E4", duration: 1, start: 36 },
+      { note: "E4", duration: 1, start: 37 },
+      { note: "E4", duration: 2, start: 38 },
+      { note: "E4", duration: 1, start: 40 },
+      { note: "G4", duration: 1, start: 41 },
+      { note: "C4", duration: 1.5, start: 42 },
+      { note: "D4", duration: 0.5, start: 43.5 },
+      { note: "E4", duration: 4, start: 44 },
+    ],
+  },
+  {
+    id: "happy-birthday",
+    title: "Happy Birthday",
+    artist: "Patty & Mildred J. Hill",
+    bpm: 100,
+    difficulty: "Beginner",
+    description: "The world's most-sung song.",
+    notes: [
+      // "Happy birthday to you"
+      { note: "C4", duration: 0.75, start: 0 },
+      { note: "C4", duration: 0.25, start: 0.75 },
+      { note: "D4", duration: 1, start: 1 },
+      { note: "C4", duration: 1, start: 2 },
+      { note: "F4", duration: 1, start: 3 },
+      { note: "E4", duration: 2, start: 4 },
+      // "Happy birthday to you"
+      { note: "C4", duration: 0.75, start: 6 },
+      { note: "C4", duration: 0.25, start: 6.75 },
+      { note: "D4", duration: 1, start: 7 },
+      { note: "C4", duration: 1, start: 8 },
+      { note: "G4", duration: 1, start: 9 },
+      { note: "F4", duration: 2, start: 10 },
+      // "Happy birthday dear ___"
+      { note: "C4", duration: 0.75, start: 12 },
+      { note: "C4", duration: 0.25, start: 12.75 },
+      { note: "C5", duration: 1, start: 13 },
+      { note: "A4", duration: 1, start: 14 },
+      { note: "F4", duration: 1, start: 15 },
+      { note: "E4", duration: 1, start: 16 },
+      { note: "D4", duration: 2, start: 17 },
+      // "Happy birthday to you"
+      { note: "B4", duration: 0.75, start: 19 },
+      { note: "B4", duration: 0.25, start: 19.75 },
+      { note: "A4", duration: 1, start: 20 },
+      { note: "F4", duration: 1, start: 21 },
+      { note: "G4", duration: 1, start: 22 },
+      { note: "F4", duration: 2, start: 23 },
+    ],
+  },
+];
+
+/** Convenience lookup by id. */
+export function findSongById(id: string): Song | undefined {
+  return SONGS.find((s) => s.id === id);
+}
+
+/** Total song length in beats (last note start + duration). */
+export function songLengthBeats(song: Song): number {
+  return song.notes.reduce((max, n) => Math.max(max, n.start + n.duration), 0);
+}
+
+/** Convert a beat count to seconds at a given BPM (no tempo multiplier). */
+export function beatsToSeconds(beats: number, bpm: number): number {
+  return (beats * 60) / bpm;
+}
