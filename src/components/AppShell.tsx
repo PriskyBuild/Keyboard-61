@@ -10,6 +10,7 @@ import { Piano } from "@/components/Piano";
 import { Metronome } from "@/components/Metronome";
 import { HeroBanner } from "@/components/HeroBanner";
 import { DailyChallengeCard } from "@/components/DailyChallengeCard";
+import { QuickStatsBar } from "@/components/QuickStatsBar";
 import {
   CommandPalette,
   CommandPaletteHint,
@@ -63,6 +64,7 @@ export default function AppShell() {
           <>
             <HeroBanner />
             <DailyChallengeCard />
+            <QuickStatsBar />
           </>
         ) : null}
 

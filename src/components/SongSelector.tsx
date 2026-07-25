@@ -17,6 +17,12 @@ const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   Intermediate: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
 };
 
+const DIFFICULTY_BORDERS: Record<Difficulty, string> = {
+  Beginner: "border-l-4 border-l-emerald-400",
+  Easy: "border-l-4 border-l-amber-400",
+  Intermediate: "border-l-4 border-l-rose-400",
+};
+
 export interface SongSelectorProps {
   /** Called when the user picks a song. */
   onSelect: (song: Song) => void;
@@ -94,6 +100,7 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
             className={cn(
               "group relative flex flex-col gap-2 overflow-hidden rounded-2xl border bg-white/80 p-4 text-left shadow-sm card-lift card-shimmer animate-soft-enter cursor-pointer",
               `stagger-${(idx % 6) + 1}`,
+              DIFFICULTY_BORDERS[song.difficulty],
               isSelected
                 ? "border-amber-400 ring-2 ring-amber-300/50 dark:bg-amber-500/5"
                 : "border-slate-200/60 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/70",

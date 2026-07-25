@@ -345,11 +345,26 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
                 bumpStatField("songsCompleted", 1);
                 commitHighScore(song.id);
                 // Mark the daily challenge as completed if this was the
-                // challenge song.
+                // challenge song, and award the bonus coins.
                 try {
                   const dc = getDailyChallenge();
                   if (dc.songId === song.id && !dc.completed) {
                     completeDailyChallenge();
+                    // Award bonus coins to the active Phase 2 profile.
+                    try {
+                      const { loadPhase2, savePhase2, getActiveProfile, getProfileProgress } =
+                        await import("@/lib/storage");
+                      const storage = loadPhase2();
+                      const profile = getActiveProfile(storage);
+                      if (profile) {
+                        const progress = getProfileProgress(storage, profile.id);
+                        progress.coins += dc.bonusCoins;
+                        storage.progress[profile.id] = progress;
+                        savePhase2(storage);
+                      }
+                    } catch {
+                      /* Phase 2 storage unavailable — skip coin award */
+                    }
                   }
                 } catch {
                   /* noop */
