@@ -181,3 +181,35 @@
 - src/lib/curriculum.ts: 12-lesson structured path with finger hints.
 - src/app/curriculum/page.tsx + LessonPath + LessonCard + FingerHint components.
 - Lessons unlock sequentially; pass at 70% accuracy.
+
+### P2-C5 — Kids curriculum ✅ DONE
+- src/lib/curriculum.ts: 12-lesson structured beginner path. Each lesson: {number, id, title, focus, bpm, estMinutes (≤5), stickerEmoji, stickerName, coins, intro, notes:[{note, finger, hand, duration, start}]}. Curriculum:
+  1. Middle C with Your Thumb (RH finger 1)
+  2. C, D, E — Fingers 1, 2, 3
+  3. Add F and G — C Position (5-finger)
+  4. Left Hand — C3 to G3 (LH fingers 5-1)
+  5. Both Hands Together (C in both hands)
+  6. Rhythm: Quarter vs Half Notes
+  7. Stepwise Motion (no skips)
+  8. First Skip (a 3rd)
+  9. Jingle Bells (excerpt)
+  10. Two-Note Chord (Heart and Soul intro)
+  11. F Position Intro
+  12. Recital: Ode to Joy (Complete)
+  Includes findLessonById, isLessonUnlocked helpers + PASS_ACCURACY = 0.7.
+- src/lib/storage.ts: Phase-2 persistence (versioned piano-app:phase2:v1 schema). KidProfile, LessonProgress, ProfileProgress, ParentSettings, StickerData types. loadPhase2/savePhase2 with try/catch (private mode). migrateFromPhase1() creates a default profile when phase-1 prefs exist. STICKER_CATALOG with 35 stickers (curriculum, animals, instruments, nature, achievements) across common/rare/legendary rarities. hashPin/verifyPin via crypto.subtle SHA-256 with fallback for non-secure contexts.
+- src/components/curriculum/FingerHint.tsx: colored circle with finger number (1-5), amber for RH / blue for LH, scales + ring when active.
+- src/components/curriculum/LessonCard.tsx: lesson tile with number badge, sticker emoji, title/focus, estMinutes/coins, status row (Completed/ Tap to start / Locked). Renders as Next.js Link when unlocked, plain div when locked.
+- src/components/curriculum/LessonPath.tsx: 12-card grid with progress header ("X of Y lessons complete"), progress bar, alternating vertical offset for path feel.
+- src/app/curriculum/page.tsx: full page with header + "Up next" hero card (mascot + lesson info + Start button) + LessonPath + completion summary. Lazy initial state from localStorage (no setState-in-effect). NoProfileScreen shown if no active profile.
+- src/app/parent/page.tsx: placeholder (full impl in P2-C7).
+- src/app/stickers/page.tsx: placeholder showing all 35 stickers in locked (greyscale, 40% opacity) state (full impl in P2-C6).
+- src/app/help/microphone/page.tsx: static privacy explainer (when we listen, auto-stop, what we do/don't do with audio, browser permission instructions).
+- Verified via agent-browser: with a test profile in localStorage, /curriculum renders all 12 lesson cards with correct lock state (lesson 1 unlocked, lessons 2-12 locked), "Up next" hero card for lesson 1, progress bar at 0%, completion summary at bottom. Lint + typecheck clean.
+
+### Next — P2-C6: Gamification & rewards
+- src/lib/rewards.ts: sticker earn logic + coin economy.
+- src/lib/streaks.ts: 7-day streak with 1-day grace.
+- src/app/stickers/page.tsx: full sticker album (earned vs locked).
+- StickerAlbum + CoinCounter + StreakCalendar components.
+- canvas-confetti burst on lesson complete (already wired in CelebrationScreen).

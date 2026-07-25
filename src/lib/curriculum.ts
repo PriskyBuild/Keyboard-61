@@ -1,0 +1,329 @@
+// MIT License — Piano Learning App (Phase 2)
+// 12-lesson structured beginner curriculum for 6-7 year olds.
+//
+// Each lesson is ≤5 minutes long, builds on the previous one, and includes
+// explicit finger hints (1=thumb, 5=pinky) for the kid-mode hand diagram.
+//
+// Pass accuracy: 70%. Lessons unlock sequentially.
+
+import type { LessonDefinition } from "@/hooks/useLessonEngine";
+
+export interface CurriculumLesson extends LessonDefinition {
+  /** 1-indexed lesson number (1-12). */
+  number: number;
+  /** Short focus description (e.g. "Middle C with the thumb"). */
+  focus: string;
+  /** Estimated minutes (always ≤5 per spec). */
+  estMinutes: number;
+  /** Sticker emoji earned on completion. */
+  stickerEmoji: string;
+  /** Sticker name (e.g. "First Note"). */
+  stickerName: string;
+  /** Coins earned on completion (scales with lesson number). */
+  coins: number;
+  /** Intro animation type. */
+  intro: "wave" | "thumb" | "scale" | "chord";
+}
+
+export const CURRICULUM: CurriculumLesson[] = [
+  {
+    number: 1,
+    id: "lesson-01-middle-c",
+    title: "Middle C with Your Thumb",
+    focus: "Right-hand thumb (finger 1) on middle C",
+    bpm: 60,
+    estMinutes: 3,
+    stickerEmoji: "🌟",
+    stickerName: "First Note",
+    coins: 5,
+    intro: "wave",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 1 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 2 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 3 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 4 },
+    ],
+  },
+  {
+    number: 2,
+    id: "lesson-02-cde",
+    title: "C, D, E — Fingers 1, 2, 3",
+    focus: "Three white keys, three fingers",
+    bpm: 60,
+    estMinutes: 4,
+    stickerEmoji: "🎵",
+    stickerName: "Three Notes",
+    coins: 8,
+    intro: "scale",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 1 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 2 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 3 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 4 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 7 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 8 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 9 },
+    ],
+  },
+  {
+    number: 3,
+    id: "lesson-03-cdefg",
+    title: "Add F and G — C Position",
+    focus: "Five-finger C position (C-D-E-F-G)",
+    bpm: 60,
+    estMinutes: 5,
+    stickerEmoji: "🌈",
+    stickerName: "C Position",
+    coins: 10,
+    intro: "scale",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 1 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 2 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 3 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 4 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 5 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 6 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 7 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 8 },
+    ],
+  },
+  {
+    number: 4,
+    id: "lesson-04-lh-c3",
+    title: "Left Hand — C3 to G3",
+    focus: "Left-hand 5-finger position (fingers 5-1)",
+    bpm: 60,
+    estMinutes: 4,
+    stickerEmoji: "✋",
+    stickerName: "Lefty",
+    coins: 10,
+    intro: "wave",
+    notes: [
+      { note: "C3", finger: 5, hand: "L", duration: 1, start: 0 },
+      { note: "D3", finger: 4, hand: "L", duration: 1, start: 1 },
+      { note: "E3", finger: 3, hand: "L", duration: 1, start: 2 },
+      { note: "F3", finger: 2, hand: "L", duration: 1, start: 3 },
+      { note: "G3", finger: 1, hand: "L", duration: 1, start: 4 },
+      { note: "F3", finger: 2, hand: "L", duration: 1, start: 5 },
+      { note: "E3", finger: 3, hand: "L", duration: 1, start: 6 },
+      { note: "D3", finger: 4, hand: "L", duration: 1, start: 7 },
+      { note: "C3", finger: 5, hand: "L", duration: 2, start: 8 },
+    ],
+  },
+  {
+    number: 5,
+    id: "lesson-05-both-hands",
+    title: "Both Hands Together",
+    focus: "Same note, both hands — C with thumb + C with pinky",
+    bpm: 60,
+    estMinutes: 5,
+    stickerEmoji: "🤝",
+    stickerName: "Teamwork",
+    coins: 12,
+    intro: "chord",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "C3", finger: 5, hand: "L", duration: 1, start: 1 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 2 },
+      { note: "C3", finger: 5, hand: "L", duration: 1, start: 3 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 4 },
+      { note: "C3", finger: 5, hand: "L", duration: 1, start: 5 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 6 },
+    ],
+  },
+  {
+    number: 6,
+    id: "lesson-06-rhythm",
+    title: "Rhythm: Long and Short Notes",
+    focus: "Quarter notes (short) vs half notes (long)",
+    bpm: 60,
+    estMinutes: 5,
+    stickerEmoji: "⏱️",
+    stickerName: "Steady Beat",
+    coins: 12,
+    intro: "wave",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 1 },
+      { note: "G4", finger: 5, hand: "R", duration: 2, start: 2 },
+      { note: "G4", finger: 5, hand: "R", duration: 2, start: 4 },
+      { note: "A4", finger: 5, hand: "R", duration: 1, start: 6 },
+      { note: "A4", finger: 5, hand: "R", duration: 1, start: 7 },
+      { note: "G4", finger: 5, hand: "R", duration: 4, start: 8 },
+    ],
+  },
+  {
+    number: 7,
+    id: "lesson-07-stepwise",
+    title: "Stepwise Motion",
+    focus: "Notes right next to each other (no skips)",
+    bpm: 70,
+    estMinutes: 4,
+    stickerEmoji: "🪜",
+    stickerName: "Stepper",
+    coins: 15,
+    intro: "scale",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 1 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 2 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 3 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 4 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 5 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 6 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 7 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 8 },
+    ],
+  },
+  {
+    number: 8,
+    id: "lesson-08-first-skip",
+    title: "Your First Skip (a 3rd)",
+    focus: "Skip one note — C to E (a third)",
+    bpm: 70,
+    estMinutes: 4,
+    stickerEmoji: "🦘",
+    stickerName: "Skipper",
+    coins: 15,
+    intro: "wave",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 1 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 2 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 3 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 4 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 5 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 6 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 7 },
+    ],
+  },
+  {
+    number: 9,
+    id: "lesson-09-jingle",
+    title: "Jingle Bells (Excerpt)",
+    focus: "C position, both hands ready",
+    bpm: 80,
+    estMinutes: 5,
+    stickerEmoji: "🔔",
+    stickerName: "Jingle",
+    coins: 18,
+    intro: "wave",
+    notes: [
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 0 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 1 },
+      { note: "E4", finger: 3, hand: "R", duration: 2, start: 2 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 4 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 5 },
+      { note: "E4", finger: 3, hand: "R", duration: 2, start: 6 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 8 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 9 },
+      { note: "C4", finger: 1, hand: "R", duration: 1.5, start: 10 },
+      { note: "D4", finger: 2, hand: "R", duration: 0.5, start: 11.5 },
+      { note: "E4", finger: 3, hand: "R", duration: 4, start: 12 },
+    ],
+  },
+  {
+    number: 10,
+    id: "lesson-10-chord",
+    title: "Two-Note Chord (Heart and Soul)",
+    focus: "Play two notes at the same time",
+    bpm: 60,
+    estMinutes: 5,
+    stickerEmoji: "🎹",
+    stickerName: "Chord Master",
+    coins: 20,
+    intro: "chord",
+    notes: [
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 1 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 2 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 3 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 4 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 5 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 6 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 7 },
+    ],
+  },
+  {
+    number: 11,
+    id: "lesson-11-f-position",
+    title: "F Position Intro",
+    focus: "Move your hand to F (F-G-A-Bb-C)",
+    bpm: 70,
+    estMinutes: 5,
+    stickerEmoji: "🎯",
+    stickerName: "Position Pro",
+    coins: 22,
+    intro: "scale",
+    notes: [
+      { note: "F4", finger: 1, hand: "R", duration: 1, start: 0 },
+      { note: "G4", finger: 2, hand: "R", duration: 1, start: 1 },
+      { note: "A4", finger: 3, hand: "R", duration: 1, start: 2 },
+      { note: "A4", finger: 3, hand: "R", duration: 1, start: 3 },
+      { note: "G4", finger: 2, hand: "R", duration: 1, start: 4 },
+      { note: "F4", finger: 1, hand: "R", duration: 2, start: 5 },
+      { note: "C5", finger: 5, hand: "R", duration: 1, start: 8 },
+      { note: "A4", finger: 3, hand: "R", duration: 1, start: 9 },
+      { note: "F4", finger: 1, hand: "R", duration: 2, start: 10 },
+    ],
+  },
+  {
+    number: 12,
+    id: "lesson-12-recital",
+    title: "Recital: Ode to Joy (Complete)",
+    focus: "Put it all together — your first performance!",
+    bpm: 90,
+    estMinutes: 5,
+    stickerEmoji: "🏆",
+    stickerName: "Recital Star",
+    coins: 30,
+    intro: "wave",
+    notes: [
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 0 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 1 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 2 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 3 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 4 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 5 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 6 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 7 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 8 },
+      { note: "C4", finger: 1, hand: "R", duration: 1, start: 9 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 10 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 11 },
+      { note: "E4", finger: 3, hand: "R", duration: 1.5, start: 12 },
+      { note: "D4", finger: 2, hand: "R", duration: 0.5, start: 13.5 },
+      { note: "D4", finger: 2, hand: "R", duration: 2, start: 14 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 16 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 17 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 18 },
+      { note: "G4", finger: 5, hand: "R", duration: 1, start: 19 },
+      { note: "F4", finger: 4, hand: "R", duration: 1, start: 20 },
+      { note: "E4", finger: 3, hand: "R", duration: 1, start: 21 },
+      { note: "D4", finger: 2, hand: "R", duration: 1, start: 22 },
+      { note: "C4", finger: 1, hand: "R", duration: 2, start: 23 },
+    ],
+  },
+];
+
+/** Convenience lookup by lesson id. */
+export function findLessonById(id: string): CurriculumLesson | undefined {
+  return CURRICULUM.find((l) => l.id === id);
+}
+
+/** Lessons unlocked given a set of completed lesson ids. Sequential: lesson N
+ *  is unlocked if lesson N-1 is in `completedLessonIds` (or N === 1). */
+export function isLessonUnlocked(
+  lesson: CurriculumLesson,
+  completedLessonIds: Set<string>,
+): boolean {
+  if (lesson.number === 1) return true;
+  const prev = CURRICULUM.find((l) => l.number === lesson.number - 1);
+  return prev ? completedLessonIds.has(prev.id) : false;
+}
+
+/** Pass threshold (70%). */
+export const PASS_ACCURACY = 0.7;
