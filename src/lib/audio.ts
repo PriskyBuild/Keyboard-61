@@ -172,20 +172,72 @@ async function doInit(): Promise<void> {
   const tone = await loadTone();
   await tone.start();
 
-  // Build the audio graph: instrument -> volume -> reverb -> destination
-  reverb = new tone.Reverb(2.2);
-  reverb.wet.value = 0.18;
+  // Build an enhanced audio graph for loud, clear, rich sound:
+  //   instrument → EQ (3-band) → Compressor → Volume → Reverb → Destination
+  //
+  // The EQ boosts lows (+2 dB) and highs (+3 dB) for a "Dolby Atmos"-like
+  // wide, punchy, crystal-clear sound. The compressor prevents clipping
+  // at high volumes while keeping dynamics punchy.
+
+  // Reverb — slightly drier than before so less signal is "lost" to reverb.
+  reverb = new tone.Reverb(2.0);
+  reverb.wet.value = 0.12;
   reverb.toDestination();
 
-  volumeNode = new tone.Volume(-6);
+  // Master volume — boosted from -6 dB to 0 dB so the output is much louder.
+  volumeNode = new tone.Volume(0);
   volumeNode.connect(reverb as unknown as ToneEffect);
 
-  // PolySynth fallback — available immediately.
+  // Compressor — acts as a limiter to prevent clipping at high volumes
+  // while keeping the sound punchy and dynamic.
+  const compressor = new (tone as unknown as {
+    Compressor: new (opts: {
+      threshold: number;
+      ratio: number;
+      attack: number;
+      release: number;
+      knee: number;
+    }) => ToneEffect;
+  }).Compressor({
+    threshold: -18,
+    ratio: 3,
+    attack: 0.003,
+    release: 0.15,
+    knee: 6,
+  });
+  compressor.connect(volumeNode as unknown as ToneEffect);
+
+  // 3-band EQ — boosts lows and highs for a wider, more immersive sound.
+  const eq = new (tone as unknown as {
+    EQ3: new (opts: {
+      low: number;
+      mid: number;
+      high: number;
+      lowFrequency: number;
+      highFrequency: number;
+    }) => ToneEffect & {
+      low: ToneParam;
+      mid: ToneParam;
+      high: ToneParam;
+    };
+  }).EQ3({
+    low: 2,    // +2 dB on lows for punchier bass
+    mid: 0,    // flat mids
+    high: 3,   // +3 dB on highs for crystal-clear treble
+    lowFrequency: 200,
+    highFrequency: 2500,
+  });
+  eq.connect(compressor);
+
+  // Store the EQ node so we can clean it up later.
+  eqNode = eq;
+
+  // PolySynth fallback — available immediately, connected through the EQ.
   fallbackInstrument = new tone.PolySynth({
     oscillator: { type: "triangle" },
     envelope: { attack: 0.005, decay: 0.2, sustain: 0.4, release: 1.2 },
   });
-  fallbackInstrument.connect(volumeNode as unknown as ToneEffect);
+  fallbackInstrument.connect(eq as unknown as ToneEffect);
 
   // Use the fallback immediately so users can play right away.
   if (!instrument) {
@@ -200,6 +252,9 @@ async function doInit(): Promise<void> {
     /* swallow — fallback already in place */
   });
 }
+
+// EQ node — kept so we can dispose it on cleanup.
+let eqNode: (ToneEffect & { low: ToneParam; mid: ToneParam; high: ToneParam }) | null = null;
 
 let samplerLoadPromise: Promise<void> | null = null;
 
@@ -245,7 +300,7 @@ function loadSamplerInBackground(tone: ToneLike): Promise<void> {
         resolve();
       },
     });
-    sampler.connect(volumeNode as unknown as ToneEffect);
+    sampler.connect(eqNode as unknown as ToneEffect);
 
     // Safety net: if neither onload nor onerror fires within 20s, settle the
     // promise so the engine doesn't stay "loading" forever.
@@ -299,7 +354,7 @@ export function getAudioState(): AudioEngineState {
  */
 export function playNote(
   note: string,
-  velocity = 0.8,
+  velocity = 1.0,
   duration?: number,
   time?: number,
 ): void {
@@ -388,10 +443,12 @@ export function disposeAudio(): void {
   if (fallbackInstrument && fallbackInstrument !== instrument) {
     fallbackInstrument.dispose();
   }
+  eqNode?.dispose();
   reverb?.dispose();
   volumeNode?.dispose();
   instrument = null;
   fallbackInstrument = null;
+  eqNode = null;
   reverb = null;
   volumeNode = null;
   toneModule = null;

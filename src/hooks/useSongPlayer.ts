@@ -227,7 +227,7 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
         const id = transport.scheduleOnce((time) => {
           // Audio — pass the sample-accurate time so playback is tight.
           try {
-            void audio.playNote(ev.note, 0.7, ev.durationSec, time);
+            void audio.playNote(ev.note, 0.9, ev.durationSec, time);
           } catch {
             /* ignore */
           }

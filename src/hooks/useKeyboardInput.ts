@@ -97,7 +97,7 @@ export function useKeyboardInput(
       } catch {
         /* fall back to silent */
       }
-      void audio.playNote(note, 0.85);
+      void audio.playNote(note, 1.0);
       onNotePress?.(note);
     },
     [audio, onNotePress, pressNote, shiftOctave],

@@ -104,7 +104,7 @@ export function useMetronome(): UseMetronome {
           // Click: very short note, low velocity.
           // C5 = accent (high), A4 = regular (lower).
           const note = isAccent ? "C5" : "A4";
-          const velocity = isAccent ? 0.7 : 0.45;
+          const velocity = isAccent ? 0.9 : 0.6;
           void audio.playNote(note, velocity, 0.04, time);
           beatCounterRef.current = (beat + 1) % beatsPerBarRef.current;
           // Update currentBeat on the next tick so the UI is in sync.

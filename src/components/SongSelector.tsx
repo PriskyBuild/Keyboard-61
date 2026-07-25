@@ -76,7 +76,7 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
         const startSec = note.start / beatsPerSecond;
         const durationSec = note.duration / beatsPerSecond;
         window.setTimeout(() => {
-          void audio.playNote(note.note, 0.7, durationSec);
+          void audio.playNote(note.note, 0.9, durationSec);
           if (note === song.notes[song.notes.length - 1]) {
             window.setTimeout(() => setPreviewingId(null), durationSec * 1000 + 200);
           }

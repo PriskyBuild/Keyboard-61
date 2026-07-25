@@ -92,7 +92,7 @@ export function Piano({ onNotePress, onNoteRelease }: PianoProps) {
       } catch {
         /* will fall back to silent */
       }
-      void audio.playNote(note, 0.85);
+      void audio.playNote(note, 1.0);
       // Persist: count this note toward lifetime stats when in Free Play
       // (Learning Mode counts hits via the song player hook instead, to
       // avoid double-counting).

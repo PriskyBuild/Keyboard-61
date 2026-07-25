@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils";
 import { usePianoStore } from "@/lib/store";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
 
-const VOLUME_DB_MIN = -36;
-const VOLUME_DB_MAX = 0;
+const VOLUME_DB_MIN = -24;
+const VOLUME_DB_MAX = 6;
 
 function volumeToDb(v: number): number {
   // v in [0,1]; map exponentially so the slider feels natural.
