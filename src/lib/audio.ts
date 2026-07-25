@@ -99,40 +99,27 @@ const SAMPLES_BASE_URL =
   process.env.NEXT_PUBLIC_PIANO_SAMPLES_BASE_URL ||
   "https://tonejs.github.io/audio/salamander/";
 
-// Salamander sample file names per note (a curated subset is enough; Tone will
-// pitch-shift the missing ones). We sample every minor third across the
-// keyboard for natural timbre.
+// Reduced sample set — only the notes the 61-key keyboard actually uses
+// (C2..C7). Fewer samples = faster download = less delay on first play.
+// Tone.js pitch-shifts the missing notes from the nearest sample, so we
+// only need one sample every ~major third.
 const SAMPLE_MAP: Record<string, string> = {
-  A0: "A0.mp3",
-  C1: "C1.mp3",
-  "D#1": "Ds1.mp3",
-  "F#1": "Fs1.mp3",
-  A1: "A1.mp3",
   C2: "C2.mp3",
-  "D#2": "Ds2.mp3",
-  "F#2": "Fs2.mp3",
+  E2: "E2.mp3",
   A2: "A2.mp3",
   C3: "C3.mp3",
-  "D#3": "Ds3.mp3",
-  "F#3": "Fs3.mp3",
+  E3: "E3.mp3",
   A3: "A3.mp3",
   C4: "C4.mp3",
-  "D#4": "Ds4.mp3",
-  "F#4": "Fs4.mp3",
+  E4: "E4.mp3",
   A4: "A4.mp3",
   C5: "C5.mp3",
-  "D#5": "Ds5.mp3",
-  "F#5": "Fs5.mp3",
+  E5: "E5.mp3",
   A5: "A5.mp3",
   C6: "C6.mp3",
-  "D#6": "Ds6.mp3",
-  "F#6": "Fs6.mp3",
+  E6: "E6.mp3",
   A6: "A6.mp3",
   C7: "C7.mp3",
-  "D#7": "Ds7.mp3",
-  "F#7": "Fs7.mp3",
-  A7: "A7.mp3",
-  C8: "C8.mp3",
 };
 
 // ---------------------------------------------------------------------------
@@ -169,16 +156,37 @@ async function doInit(): Promise<void> {
   const tone = await loadTone();
   await tone.start();
 
-  // Build an enhanced audio graph for loud, clear, rich sound:
+  // STEP 1: Create the PolySynth fallback FIRST and connect it directly
+  // to the destination. This makes notes playable IMMEDIATELY — no waiting
+  // for reverb generation or sample loading.
+  fallbackInstrument = new tone.PolySynth({
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.005, decay: 0.2, sustain: 0.4, release: 1.2 },
+  });
+  // Temporarily connect directly to destination so it's playable right now.
+  const tempVolume = new tone.Volume(0);
+  tempVolume.toDestination();
+  fallbackInstrument.connect(tempVolume as unknown as ToneEffect);
+
+  // Use the fallback immediately so users can play right away.
+  if (!instrument) {
+    instrument = fallbackInstrument;
+    usingFallback = true;
+  }
+  notifyStateListeners();
+
+  // STEP 2: Build the enhanced audio graph in the background.
   //   instrument → EQ (3-band) → Compressor → Volume → Reverb → Destination
   //
   // The EQ boosts lows (+2 dB) and highs (+3 dB) for a "Dolby Atmos"-like
   // wide, punchy, crystal-clear sound. The compressor prevents clipping
   // at high volumes while keeping dynamics punchy.
 
-  // Reverb — slightly drier than before so less signal is "lost" to reverb.
-  reverb = new tone.Reverb(2.0);
-  reverb.wet.value = 0.12;
+  // Reverb — shorter decay (1.2s vs 2.0s) for faster generation + less
+  // perceived "loss" of signal. The reverb's `generate()` method runs
+  // asynchronously and blocks audio until done — shorter decay = faster ready.
+  reverb = new tone.Reverb(1.2);
+  reverb.wet.value = 0.10;
   reverb.toDestination();
 
   // Master volume — boosted from -6 dB to 0 dB so the output is much louder.
@@ -229,17 +237,14 @@ async function doInit(): Promise<void> {
   // Store the EQ node so we can clean it up later.
   eqNode = eq;
 
-  // PolySynth fallback — available immediately, connected through the EQ.
-  fallbackInstrument = new tone.PolySynth({
-    oscillator: { type: "triangle" },
-    envelope: { attack: 0.005, decay: 0.2, sustain: 0.4, release: 1.2 },
-  });
-  fallbackInstrument.connect(eq as unknown as ToneEffect);
-
-  // Use the fallback immediately so users can play right away.
-  if (!instrument) {
-    instrument = fallbackInstrument;
-    usingFallback = true;
+  // Reconnect the fallback instrument through the full EQ chain (it was
+  // temporarily connected directly to destination for instant playback).
+  // Disconnect from the temp volume first, then connect through the EQ.
+  try {
+    fallbackInstrument?.disconnect();
+    fallbackInstrument?.connect(eq as unknown as ToneEffect);
+  } catch {
+    /* noop */
   }
 
   // Kick off the real Sampler in the background. When it finishes loading
