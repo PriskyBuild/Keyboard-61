@@ -293,3 +293,28 @@ git push -u origin main
 ```
 
 (Vercel → New Project → Import the repo → Deploy. No env vars needed.)
+
+## Post-launch debugging (July 25 2026)
+
+### Issue 1: "Can't find Phase 2 updates on Vercel"
+**Root cause:** Vercel's "Vercel Authentication" is enabled on the project, gating every deployment behind an SSO login redirect. All routes (/, /listen, /curriculum, /parent, /stickers) return HTTP 302 → vercel.com/sso-api.
+
+**Verified working on Vercel's side:**
+- Latest commit `9807757` is deployed to Production (GitHub deployment status: success).
+- Deployment URL: `https://piano-learn-n4nuyajo5-priskybuilds.vercel.app`
+- All routes return HTTP 200 from Vercel's edge (after the redirect, they would render fine if auth were disabled).
+
+**Fix for the user:**
+1. Go to https://vercel.com/priskybuilds/piano-learn/settings/deployment-protection
+2. Under "Vercel Authentication", toggle it OFF (or set to "Only Preview Deployments" so Production stays public).
+3. Redeploy: https://vercel.com/priskybuilds/piano-learn/deployments → ⋮ → Redeploy.
+4. Verify the production URL is publicly accessible.
+
+### Issue 2: "There is no curriculum path"
+Symptom of Issue 1 — the user is seeing a stale/old deployment because every page redirects to SSO. Once Issue 1 is fixed, /curriculum will render all 12 lessons.
+
+### Issue 3: "Bring the keyboard and Visualiser closer together"
+**Fixed in commit `9807757`** (ui(listen): bring visualizer + piano closer together):
+- Wrapped FallingNotesKid + ListenPiano in a single bordered container with gap-0.
+- Notes now visually fall directly onto the matching keys (no visual gap).
+- Visualizer height reduced from 280 to 240px to fit tighter.
