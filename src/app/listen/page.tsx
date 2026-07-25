@@ -209,8 +209,32 @@ function ListenPageInner() {
         <Mascot state={mascotState} size={140} message={engine.mascotMessage} />
       </div>
 
-      {/* Score / Accuracy / Streak + Play / Restart panel — sits ABOVE the
-          visualizer so the visualizer directly touches the piano keys below. */}
+      {/* Falling-notes visualizer + Reference piano — wrapped in a single
+          bordered container with NO gap between them so notes visually fall
+          directly onto the matching keys. The Score/Play panel has been
+          moved BELOW the keyboard so nothing sits between the visualizer
+          and the piano. */}
+      <div className="flex flex-col gap-0 overflow-hidden rounded-2xl border-2 border-amber-300/40 bg-slate-950/40 p-2 shadow-xl gradient-border-animated sm:p-3">
+        <div className="-mb-1">
+          <FallingNotesKid
+            notes={engine.visualizer}
+            isPlaying={engine.isPlaying}
+            height={240}
+          />
+        </div>
+        <ListenPiano
+          activeNote={activeNote}
+          expectedNote={engine.expectedNote}
+          wrongNote={
+            engine.mic.detectedNote && engine.feedback === "wrong"
+              ? engine.mic.detectedNote
+              : null
+          }
+        />
+      </div>
+
+      {/* Score / Accuracy / Streak + Play / Restart panel — sits BELOW the
+          keyboard so the visualizer directly touches the piano keys above. */}
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 sm:flex-row sm:items-center sm:justify-between">
         {/* Left: score / accuracy / streak chips */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
@@ -290,34 +314,10 @@ function ListenPageInner() {
         </div>
       </div>
 
-      {/* Falling-notes visualizer + Reference piano — wrapped in a single
-          bordered container with NO gap between them so notes visually fall
-          directly onto the matching keys. Both elements share the same
-          horizontal scroll + column math (computed inside each component). */}
-      <div className="flex flex-col gap-0 overflow-hidden rounded-2xl border-2 border-amber-300/40 bg-slate-950/40 p-2 shadow-xl gradient-border-animated sm:p-3">
-        <div className="-mb-1">
-          <FallingNotesKid
-            notes={engine.visualizer}
-            isPlaying={engine.isPlaying}
-            height={240}
-          />
-        </div>
-        <ListenPiano
-          activeNote={activeNote}
-          expectedNote={engine.expectedNote}
-          wrongNote={
-            engine.mic.detectedNote && engine.feedback === "wrong"
-              ? engine.mic.detectedNote
-              : null
-          }
-        />
-      </div>
-
       {/* Hand position diagram */}
       <HandPositionDiagram hand={engine.expectedHand} finger={engine.expectedFinger} />
 
-      {/* Progress bar (kept below the visualizer+piano so the kid sees their
-          progress through the lesson at the bottom of the play area) */}
+      {/* Progress bar */}
       <div
         className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
         role="progressbar"
