@@ -155,6 +155,7 @@ export function LearningPanel() {
                 isPlaying={player.isPlaying}
                 onRestart={handleReplay}
                 songLengthBeats={songLengthBeats(song)}
+                songBpm={song.bpm}
               />
 
               {/* Song title + back */}

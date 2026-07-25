@@ -294,7 +294,7 @@ function ListenPageInner() {
           bordered container with NO gap between them so notes visually fall
           directly onto the matching keys. Both elements share the same
           horizontal scroll + column math (computed inside each component). */}
-      <div className="flex flex-col gap-0 overflow-hidden rounded-2xl border-2 border-amber-300/40 bg-slate-950/40 p-2 shadow-xl sm:p-3">
+      <div className="flex flex-col gap-0 overflow-hidden rounded-2xl border-2 border-amber-300/40 bg-slate-950/40 p-2 shadow-xl gradient-border-animated sm:p-3">
         <div className="-mb-1">
           <FallingNotesKid
             notes={engine.visualizer}

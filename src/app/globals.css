@@ -478,3 +478,55 @@ html:not(.light):not(.dark) .piano-theme-toggle button[data-theme-choice="system
 .animate-coin-spin {
   animation: coin-spin 3s ease-in-out infinite;
 }
+
+/* ============================================================
+ * Round 6 polish — key glow, visualizer border, badge confetti
+ * ========================================================== */
+
+/* Active key glow — pulses when a piano key is pressed */
+@keyframes key-glow {
+  0%, 100% { box-shadow: 0 0 8px 2px oklch(0.769 0.188 70.08 / 0.3); }
+  50%      { box-shadow: 0 0 16px 4px oklch(0.769 0.188 70.08 / 0.5); }
+}
+.piano-key-white.is-pressed,
+.piano-key-black.is-pressed {
+  animation: key-glow 0.6s ease-in-out;
+}
+
+/* Animated gradient border for the visualizer container */
+@keyframes gradient-border {
+  0%   { border-color: oklch(0.769 0.188 70.08 / 0.4); }
+  33%  { border-color: oklch(0.6 0.118 184.704 / 0.4); }
+  66%  { border-color: oklch(0.628 0.257 25.5 / 0.4); }
+  100% { border-color: oklch(0.769 0.188 70.08 / 0.4); }
+}
+.gradient-border-animated {
+  animation: gradient-border 4s linear infinite;
+}
+
+/* Badge unlock confetti — small sparkle burst */
+@keyframes badge-sparkle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50%      { opacity: 1; transform: scale(1); }
+}
+.badge-sparkle {
+  animation: badge-sparkle 1.2s ease-in-out infinite;
+}
+
+/* Ripple effect for button presses */
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.6; }
+  100% { transform: scale(4); opacity: 0; }
+}
+.ripple-effect {
+  animation: ripple 0.6s ease-out;
+}
+
+/* Slide-in from right for sheet drawers */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}

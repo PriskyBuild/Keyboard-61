@@ -3,10 +3,12 @@
 
 "use client";
 
-import { Music2, Clock, Gauge, Crown, Star } from "lucide-react";
+import { useState } from "react";
+import { Music2, Clock, Gauge, Crown, Star, Play, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SONGS } from "@/lib/songs";
 import { usePianoStore } from "@/lib/store";
+import { useAudioEngine } from "@/hooks/useAudioEngine";
 import type { Difficulty, Song } from "@/types";
 
 const DIFFICULTY_COLORS: Record<Difficulty, string> = {
@@ -26,6 +28,41 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
   // Wire to store so the active selection is visible.
   const current = usePianoStore((s) => s.currentSong);
   const highScores = usePianoStore((s) => s.highScores);
+  const audio = useAudioEngine();
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+
+  const previewSong = async (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (previewingId === song.id) {
+      // Stop previewing.
+      setPreviewingId(null);
+      try {
+        const mod = await audio.ensureReady();
+        mod.releaseAllNotes();
+      } catch {
+        /* noop */
+      }
+      return;
+    }
+    setPreviewingId(song.id);
+    try {
+      await audio.ensureReady();
+      const beatsPerSecond = song.bpm / 60;
+      for (const note of song.notes) {
+        const startSec = note.start / beatsPerSecond;
+        const durationSec = note.duration / beatsPerSecond;
+        window.setTimeout(() => {
+          void audio.playNote(note.note, 0.7, durationSec);
+          if (note === song.notes[song.notes.length - 1]) {
+            window.setTimeout(() => setPreviewingId(null), durationSec * 1000 + 200);
+          }
+        }, startSec * 1000);
+      }
+    } catch {
+      /* audio not ready */
+      setPreviewingId(null);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -42,13 +79,20 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
           song.bpm;
         const hs = highScores[song.id];
         return (
-          <button
+          <div
             key={song.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(song)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(song);
+              }
+            }}
             aria-pressed={isSelected}
             className={cn(
-              "group relative flex flex-col gap-2 overflow-hidden rounded-2xl border bg-white/80 p-4 text-left shadow-sm card-lift card-shimmer animate-soft-enter",
+              "group relative flex flex-col gap-2 overflow-hidden rounded-2xl border bg-white/80 p-4 text-left shadow-sm card-lift card-shimmer animate-soft-enter cursor-pointer",
               `stagger-${(idx % 6) + 1}`,
               isSelected
                 ? "border-amber-400 ring-2 ring-amber-300/50 dark:bg-amber-500/5"
@@ -106,7 +150,32 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
                 <span className="opacity-60">· streak {hs.bestStreak}</span>
               </div>
             ) : null}
-          </button>
+
+            {/* Preview button — play the song's audio without scoring */}
+            <button
+              type="button"
+              onClick={(e) => void previewSong(song, e)}
+              className={cn(
+                "mt-1.5 inline-flex items-center justify-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors",
+                previewingId === song.id
+                  ? "border-amber-400 bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                  : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800",
+              )}
+              aria-label={previewingId === song.id ? "Stop preview" : "Preview song"}
+            >
+              {previewingId === song.id ? (
+                <>
+                  <Square className="h-2.5 w-2.5" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play className="h-2.5 w-2.5" />
+                  Preview
+                </>
+              )}
+            </button>
+          </div>
         );
       })}
     </div>

@@ -286,6 +286,46 @@ export function CommandPalette() {
 
         <CommandSeparator />
 
+        <CommandGroup heading="Sticker themes">
+          <CommandItem
+            onSelect={() => go("/stickers")}
+            className="gap-2"
+          >
+            <Trophy className="h-4 w-4 text-amber-500" />
+            <span>Lesson stickers (curriculum)</span>
+          </CommandItem>
+          <CommandItem
+            onSelect={() => go("/stickers")}
+            className="gap-2"
+          >
+            <Trophy className="h-4 w-4 text-emerald-500" />
+            <span>Animal friends</span>
+          </CommandItem>
+          <CommandItem
+            onSelect={() => go("/stickers")}
+            className="gap-2"
+          >
+            <Trophy className="h-4 w-4 text-blue-500" />
+            <span>Instruments</span>
+          </CommandItem>
+          <CommandItem
+            onSelect={() => go("/stickers")}
+            className="gap-2"
+          >
+            <Trophy className="h-4 w-4 text-purple-500" />
+            <span>Nature</span>
+          </CommandItem>
+          <CommandItem
+            onSelect={() => go("/stickers")}
+            className="gap-2"
+          >
+            <Trophy className="h-4 w-4 text-rose-500" />
+            <span>Achievements</span>
+          </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+
         <CommandGroup heading="Help">
           <CommandItem
             onSelect={() => go("/help/microphone")}

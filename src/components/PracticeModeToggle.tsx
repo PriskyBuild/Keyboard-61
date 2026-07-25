@@ -19,12 +19,15 @@ export interface PracticeModeToggleProps {
   onRestart: () => void;
   /** Total song length in beats (for the A-B loop slider range). */
   songLengthBeats?: number;
+  /** Song BPM — used to convert beat numbers to time labels (e.g. "0:12"). */
+  songBpm?: number;
 }
 
 export function PracticeModeToggle({
   isPlaying,
   onRestart,
   songLengthBeats = 32,
+  songBpm = 100,
 }: PracticeModeToggleProps) {
   const practice = usePianoStore((s) => s.practiceMode);
   const setPractice = usePianoStore((s) => s.setPracticeMode);
@@ -123,10 +126,13 @@ export function PracticeModeToggle({
               />
               <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
                 <span>
-                  A: beat {loopStartBeat ?? 0}
+                  A: {beatsToTime(loopStartBeat ?? 0, songBpm)}
+                </span>
+                <span className="text-amber-500 dark:text-amber-400">
+                  Loop: {beatsToTime((loopEndBeat ?? songLengthBeats) - (loopStartBeat ?? 0), songBpm)}
                 </span>
                 <span>
-                  B: beat {loopEndBeat ?? songLengthBeats}
+                  B: {beatsToTime(loopEndBeat ?? songLengthBeats, songBpm)}
                 </span>
               </div>
             </div>
@@ -135,4 +141,12 @@ export function PracticeModeToggle({
       ) : null}
     </div>
   );
+}
+
+/** Convert a beat count to a "M:SS" time string using the song's BPM. */
+function beatsToTime(beats: number, bpm: number): string {
+  const seconds = (beats * 60) / bpm;
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
