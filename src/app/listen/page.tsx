@@ -1,21 +1,26 @@
 // MIT License — Piano Learning App (Phase 2)
 // /listen route — kid-friendly Microphone Listening Mode.
 //
-// Layout (top to bottom):
-//   1. Header with mic status + Start/Stop button + persistent "listening" badge
-//   2. Mascot (Bruno the bear) with speech bubble
-//   3. Falling-notes visualizer (kid mode — large, colorful, slow)
-//   4. Reference-only 61-key ListenPiano (lights up the expected + detected notes)
-//   5. Hand-position diagram (which finger to use)
-//   6. Footer with privacy reminder
+// Reads the ?lesson=ID query param to load a curriculum lesson (P2-C5).
+// Falls back to a built-in demo lesson if no param is given (so the page
+// is useful on its own).
 //
-// Feedback overlay (green burst on correct, yellow wiggle on wrong) renders
-// as a fixed overlay above everything when the lesson engine fires it.
+// Layout:
+//   1. Header with mic status + Start/Stop button + persistent listening badge
+//   2. Mascot (Bruno the bear) with speech bubble
+//   3. Falling-notes visualizer (kid mode)
+//   4. Reference-only 61-key ListenPiano
+//   5. Hand-position diagram
+//   6. Progress + score row
+//   7. Privacy footer
+//
+// On first visit (no calibration done), shows CalibrationFlow first.
 
 "use client";
 
 import { useMemo, useState } from "react";
-import { useLessonEngine, type LessonDefinition } from "@/hooks/useLessonEngine";
+import { useSearchParams } from "next/navigation";
+import { useLessonEngine } from "@/hooks/useLessonEngine";
 import { Mascot, type MascotState } from "@/components/listen/Mascot";
 import { ListenPiano } from "@/components/listen/ListenPiano";
 import { FallingNotesKid } from "@/components/listen/FallingNotesKid";
@@ -23,16 +28,29 @@ import { FeedbackOverlay } from "@/components/listen/FeedbackOverlay";
 import { HandPositionDiagram } from "@/components/listen/HandPositionDiagram";
 import { CelebrationScreen } from "@/components/listen/CelebrationScreen";
 import { MicPermissionModal } from "@/components/onboarding/MicPermissionModal";
+import {
+  CalibrationFlow,
+  isCalibrationDone,
+  markCalibrationDone,
+} from "@/components/onboarding/CalibrationFlow";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, AlertTriangle, Play, RotateCcw, Ear } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CURRICULUM, findLessonById, type CurriculumLesson } from "@/lib/curriculum";
+import type { LessonDefinition } from "@/hooks/useLessonEngine";
 
-// Demo lesson for P2-C4 — a 4-note C-major scale warmup.
-// The full 12-lesson curriculum arrives in P2-C5.
-const DEMO_LESSON: LessonDefinition = {
+// Demo lesson used when no ?lesson= param is given.
+const DEMO_LESSON: CurriculumLesson = {
+  number: 0, // 0 = not in the official curriculum
   id: "demo-warmup",
   title: "C Scale Warmup",
+  focus: "Right-hand thumb walking up and down",
   bpm: 60,
+  estMinutes: 3,
+  stickerEmoji: "🌟",
+  stickerName: "Warmup Star",
+  coins: 5,
+  intro: "wave",
   notes: [
     { note: "C4", finger: 1, hand: "R", duration: 1, start: 0 },
     { note: "D4", finger: 2, hand: "R", duration: 1, start: 1 },
@@ -47,9 +65,31 @@ const DEMO_LESSON: LessonDefinition = {
 };
 
 export default function ListenPage() {
-  const lesson = DEMO_LESSON;
-  const engine = useLessonEngine(lesson);
+  const searchParams = useSearchParams();
+  const lessonId = searchParams.get("lesson");
+  const curriculum: CurriculumLesson = useMemo(() => {
+    if (lessonId) {
+      const found = findLessonById(lessonId);
+      if (found) return found;
+    }
+    return DEMO_LESSON;
+  }, [lessonId]);
+  const lessonDef: LessonDefinition = useMemo(
+    () => ({
+      id: curriculum.id,
+      title: curriculum.title,
+      bpm: curriculum.bpm,
+      notes: curriculum.notes,
+    }),
+    [curriculum],
+  );
+
+  const engine = useLessonEngine(lessonDef, curriculum);
   const [showPermission, setShowPermission] = useState(false);
+  const [showCalibration, setShowCalibration] = useState(false);
+  const [calibrationDone, setCalibrationDone] = useState(
+    typeof window !== "undefined" && isCalibrationDone(),
+  );
 
   // Map engine phase → mascot state.
   const mascotState: MascotState = engine.complete
@@ -65,6 +105,24 @@ export default function ListenPage() {
   // Active note = the note the kid just played (lights up green on the piano).
   const activeNote = engine.feedback === "correct" ? engine.expectedNote : null;
 
+  // Show calibration flow on first visit (only if mic is supported).
+  if (!calibrationDone && engine.mic.supported && !engine.mic.listening) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 p-4">
+        <CalibrationFlow
+          onComplete={() => {
+            markCalibrationDone();
+            setCalibrationDone(true);
+          }}
+          onSkip={() => {
+            markCalibrationDone();
+            setCalibrationDone(true);
+          }}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-4 px-3 py-4 sm:px-6 sm:py-6">
       {/* Header */}
@@ -72,15 +130,13 @@ export default function ListenPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl">
             <Ear className="h-7 w-7 text-amber-500" />
-            Listen Mode
+            {curriculum.title}
           </h1>
           <p className="text-sm text-muted-foreground sm:text-base">
-            Sit at your real piano, play along, and Bruno the bear will cheer
-            you on!
+            {curriculum.focus}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Persistent "listening" badge */}
           {engine.mic.listening ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
               <span className="relative flex h-2 w-2">
@@ -137,18 +193,17 @@ export default function ListenPage() {
       </div>
 
       {/* Falling-notes visualizer */}
-      <FallingNotesKid
-        notes={engine.visualizer}
-        isPlaying={engine.isPlaying}
-      />
+      <FallingNotesKid notes={engine.visualizer} isPlaying={engine.isPlaying} />
 
       {/* Reference piano */}
       <ListenPiano
         activeNote={activeNote}
         expectedNote={engine.expectedNote}
-        wrongNote={engine.mic.detectedNote && engine.feedback === "wrong"
-          ? engine.mic.detectedNote
-          : null}
+        wrongNote={
+          engine.mic.detectedNote && engine.feedback === "wrong"
+            ? engine.mic.detectedNote
+            : null
+        }
       />
 
       {/* Hand position diagram */}
@@ -156,12 +211,21 @@ export default function ListenPage() {
 
       {/* Progress + score row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ProgressCard label="Note" value={`${engine.currentIndex + 1} / ${engine.total}`} />
+        <ProgressCard
+          label="Note"
+          value={`${engine.currentIndex + 1} / ${engine.total}`}
+        />
         <ProgressCard label="Hits" value={`${engine.hits}`} tone="emerald" />
         <ProgressCard
           label="Accuracy"
           value={`${engine.accuracy}%`}
-          tone={engine.accuracy >= 80 ? "emerald" : engine.accuracy >= 50 ? "amber" : "slate"}
+          tone={
+            engine.accuracy >= 80
+              ? "emerald"
+              : engine.accuracy >= 50
+                ? "amber"
+                : "slate"
+          }
         />
         <ProgressCard
           label="Progress"
@@ -212,13 +276,13 @@ export default function ListenPage() {
         }
       />
 
-      {/* Celebration screen on complete */}
+      {/* Celebration screen on complete (uses engine.rewards if available) */}
       {engine.complete ? (
         <CelebrationScreen
-          lessonTitle={lesson.title}
-          stickerEmoji="🌟"
-          stickerName="First Scales"
-          coinsEarned={engine.hits * 5}
+          lessonTitle={curriculum.title}
+          stickerEmoji={engine.rewards?.stickerEmoji ?? curriculum.stickerEmoji}
+          stickerName={engine.rewards?.stickerName ?? curriculum.stickerName}
+          coinsEarned={engine.rewards?.coinsEarned ?? 0}
           accuracy={engine.accuracy}
           onContinue={() => engine.reset()}
           onReplay={() => {

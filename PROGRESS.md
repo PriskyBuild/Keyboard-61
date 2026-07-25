@@ -246,3 +246,26 @@
 - Wire lesson progress persistence: when lesson engine fires `complete`, save to localStorage + award stickers + coins + streak.
 - Wire /listen to read ?lesson=ID query param.
 - bun run build green.
+
+### P2-C8 — Persistence & polish ✅ DONE
+- src/components/onboarding/CalibrationFlow.tsx: 4-step first-run flow (intro → capturing → done | failed). Mascot explains "play middle C three times". Captures 3 samples, computes noise floor = 2× ambient RMS. Failure state shows kid-friendly suggestion (move closer / close windows / etc.). On success, persists noise floor via mic.setNoiseFloor + localStorage calibrated flag. isCalibrationDone / markCalibrationDone helpers.
+- src/hooks/useLessonEngine.ts: extended to accept optional CurriculumLesson. On lesson completion, calls persistLessonCompletion() which:
+  - Loads Phase-2 storage + active profile.
+  - Marks today as a streak day (markTodayComplete).
+  - Computes rewards via computeLessonRewards (lesson sticker + coins + perfect-score bonus + 7-day streak bonus).
+  - Updates progress.lessons[lessonId] = {completed: true, bestAccuracy, attempts, lastPlayedAt}.
+  - Bumps progress.coins by rewards.coinsEarned.
+  - Adds new sticker to progress.stickers if newly earned.
+  - Bumps progress.minutesPractised by lesson.estMinutes.
+  - Saves to localStorage.
+  - Returns LessonRewards {stickerId, stickerEmoji, stickerName, coinsEarned, reasons} for the celebration screen.
+- Rewrote /listen page:
+  - Reads ?lesson=ID query param via useSearchParams. Falls back to DEMO_LESSON if no param.
+  - Passes both lessonDef (basic) and curriculum (with stickerEmoji/coins) to useLessonEngine.
+  - On first visit (no calibration done), shows CalibrationFlow.
+  - Celebration screen now uses engine.rewards (stickerEmoji/stickerName/coinsEarned) when available.
+- Verified via agent-browser: /listen with no param shows CalibrationFlow first → skip → renders DEMO_LESSON ("C Scale Warmup"). /listen?lesson=lesson-01-middle-c renders "Middle C with Your Thumb" lesson. /listen?lesson=lesson-12-recital returns 200. Lint + typecheck clean.
+
+### Next — P2-C9: Deploy ready
+- Final lint + typecheck.
+- Print git push commands.

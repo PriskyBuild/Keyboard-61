@@ -23,6 +23,7 @@ import {
   playFanfareCue,
 } from "@/lib/audio-cues";
 import type { KidFallingNote } from "@/components/listen/FallingNotesKid";
+import type { CurriculumLesson } from "@/lib/curriculum";
 
 export type LessonPhase = "intro" | "warmup" | "guided" | "recital" | "complete";
 
@@ -85,6 +86,16 @@ export interface UseLessonEngine extends LessonEngineState {
   reset: () => void;
   /** The mic listener (so the page can render mic status, etc.). */
   mic: ReturnType<typeof useMicListener>;
+  /** Rewards earned this run (set when phase becomes "complete"). */
+  rewards: LessonRewards | null;
+}
+
+export interface LessonRewards {
+  stickerId: string | null;
+  stickerEmoji: string | null;
+  stickerName: string | null;
+  coinsEarned: number;
+  reasons: string[];
 }
 
 const PASS_ACCURACY = 0.7;
@@ -92,6 +103,9 @@ const AUTO_ADVANCE_MS = 400; // after a correct press, wait this long then advan
 
 export function useLessonEngine(
   lesson: LessonDefinition | null,
+  /** Optional curriculum metadata (stickerEmoji, coins, etc.). When provided,
+   *  the engine computes + exposes rewards on completion. */
+  curriculum?: CurriculumLesson | null,
 ): UseLessonEngine {
   const mic = useMicListener();
   const setNextNote = usePianoStore((s) => s.setNextNote);
@@ -105,6 +119,7 @@ export function useLessonEngine(
   const [complete, setComplete] = useState(false);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [feedbackKey, setFeedbackKey] = useState(0);
+  const [rewards, setRewards] = useState<LessonRewards | null>(null);
 
   // Refs to avoid stale closures in the mic subscription.
   const currentIndexRef = useRef(0);
@@ -222,6 +237,22 @@ export function useLessonEngine(
                 setPhase("complete");
                 setComplete(true);
                 void playFanfareCue();
+                // Compute rewards if curriculum metadata is available.
+                if (curriculum) {
+                  const finalHits = hitsRef.current;
+                  const finalTotal = lesson.notes.length;
+                  const finalAccuracy =
+                    finalTotal > 0
+                      ? Math.round((finalHits / finalTotal) * 100)
+                      : 0;
+                  // Persist progress + awards to localStorage.
+                  void finalHits; // tracked via finalAccuracy
+                  const r = persistLessonCompletion(
+                    curriculum,
+                    finalAccuracy,
+                  );
+                  setRewards(r);
+                }
               } else {
                 setCurrentIndex(nextIdx);
                 setProgress(nextIdx / lesson.notes.length);
@@ -274,6 +305,7 @@ export function useLessonEngine(
     setComplete(false);
     setProgress(0);
     setIsPlaying(true);
+    setRewards(null);
     setNextNote(lesson.notes[0]?.note ?? null);
     void mic.start();
   }, [lesson, mic, setNextNote]);
@@ -286,6 +318,7 @@ export function useLessonEngine(
     setProgress(0);
     setIsPlaying(false);
     setFeedback(null);
+    setRewards(null);
     setNextNote(null);
     mic.stop();
   }, [mic, setNextNote]);
@@ -321,8 +354,123 @@ export function useLessonEngine(
     feedbackKey,
     mascotMessage,
     mic,
+    rewards,
     start,
     reset,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Persist lesson completion to localStorage. Awards sticker + coins + streak.
+// Returns the rewards summary for the celebration screen.
+// ---------------------------------------------------------------------------
+
+import {
+  getActiveProfile,
+  getProfileProgress,
+  loadPhase2,
+  savePhase2,
+  upsertProfileProgress,
+} from "@/lib/storage";
+import { computeLessonRewards } from "@/lib/rewards";
+import { markTodayComplete, computeStreak } from "@/lib/streaks";
+
+function persistLessonCompletion(
+  curriculum: CurriculumLesson,
+  accuracy: number,
+): LessonRewards {
+  if (typeof window === "undefined") {
+    return {
+      stickerId: null,
+      stickerEmoji: null,
+      stickerName: null,
+      coinsEarned: 0,
+      reasons: [],
+    };
+  }
+  const storage = loadPhase2();
+  const profile = getActiveProfile(storage);
+  if (!profile) {
+    return {
+      stickerId: null,
+      stickerEmoji: null,
+      stickerName: null,
+      coinsEarned: 0,
+      reasons: [],
+    };
+  }
+  const progress = getProfileProgress(storage, profile.id);
+
+  // Build a sticker id for this lesson (curriculum lessons get
+  // sticker-first-note-style ids derived from the lesson number).
+  const lessonStickerId = `sticker-lesson-${curriculum.number}`;
+  const alreadyOwned = new Set(progress.stickers);
+
+  // Mark today as a streak day BEFORE computing the streak so the current
+  // count is correct.
+  const newStreakDays = markTodayComplete(progress.streakDays);
+  const streakInfo = computeStreak(newStreakDays);
+
+  const rewards = computeLessonRewards(
+    lessonStickerId,
+    alreadyOwned,
+    curriculum.coins,
+    accuracy,
+    streakInfo.current,
+  );
+
+  // Update progress: mark lesson completed, bump coins, add sticker if new,
+  // update streakDays, bump minutes (estimate from lesson length).
+  const existingLesson = progress.lessons[curriculum.id];
+  const updatedLesson = {
+    lessonId: curriculum.id,
+    completed: true,
+    bestAccuracy: Math.max(
+      existingLesson?.bestAccuracy ?? 0,
+      accuracy,
+    ),
+    attempts: (existingLesson?.attempts ?? 0) + 1,
+    lastPlayedAt: new Date().toISOString(),
+  };
+
+  // Add sticker if new.
+  const newStickers = rewards.stickerIsNew && rewards.stickerId
+    ? [...progress.stickers, rewards.stickerId]
+    : progress.stickers;
+
+  const next = upsertProfileProgress(storage, profile.id, {
+    lessons: { ...progress.lessons, [curriculum.id]: updatedLesson },
+    coins: progress.coins + rewards.coinsEarned,
+    stickers: newStickers,
+    streakDays: newStreakDays,
+    minutesPractised: progress.minutesPractised + curriculum.estMinutes,
+    lastSessionDate: new Date().toISOString(),
+  });
+  savePhase2(next);
+
+  // Resolve the sticker emoji/name for the celebration screen.
+  let stickerEmoji: string | null = null;
+  let stickerName: string | null = null;
+  if (rewards.stickerId) {
+    // Curriculum lessons map directly to their sticker emoji.
+    stickerEmoji = curriculum.stickerEmoji;
+    stickerName = curriculum.stickerName;
+    // Override for non-curriculum stickers (perfect score, 7-day streak).
+    if (rewards.stickerId === "sticker-perfect") {
+      stickerEmoji = "💯";
+      stickerName = "Perfect Score";
+    } else if (rewards.stickerId === "sticker-7-day") {
+      stickerEmoji = "🔥";
+      stickerName = "7-Day Streak!";
+    }
+  }
+
+  return {
+    stickerId: rewards.stickerId,
+    stickerEmoji,
+    stickerName,
+    coinsEarned: rewards.coinsEarned,
+    reasons: rewards.reasons,
   };
 }
 
