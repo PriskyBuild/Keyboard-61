@@ -316,14 +316,5 @@ export function findLessonById(id: string): CurriculumLesson | undefined {
 
 /** Lessons unlocked given a set of completed lesson ids. Sequential: lesson N
  *  is unlocked if lesson N-1 is in `completedLessonIds` (or N === 1). */
-export function isLessonUnlocked(
-  lesson: CurriculumLesson,
-  completedLessonIds: Set<string>,
-): boolean {
-  if (lesson.number === 1) return true;
-  const prev = CURRICULUM.find((l) => l.number === lesson.number - 1);
-  return prev ? completedLessonIds.has(prev.id) : false;
-}
 
 /** Pass threshold (70%). */
-export const PASS_ACCURACY = 0.7;

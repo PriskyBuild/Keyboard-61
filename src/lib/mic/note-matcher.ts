@@ -70,7 +70,7 @@ export function createMatcherState(): MatcherState {
  *
  * Uses the formula: midi = 69 + 12 * log2(freq / 440).
  */
-export function freqToMidi(freq: number): number {
+function freqToMidi(freq: number): number {
   return 69 + 12 * Math.log2(freq / 440);
 }
 
@@ -114,10 +114,6 @@ export function notesMatch(
  * Compute the cents offset between a detected frequency and an expected
  * note. Positive = sharp, negative = flat.
  */
-export function centsOffset(detectedFreq: number, expectedNote: string): number {
-  const expectedFreq = noteToFrequency(expectedNote);
-  return Math.round(CENTS_PER_OCTAVE * Math.log2(detectedFreq / expectedFreq));
-}
 
 /**
  * Run one matching pass.
@@ -216,6 +212,3 @@ export function matchNote(
  * Convenience helper: is a MatchResult a "valid note ready for scoring"?
  * True when we have a confident, non-silent, stable detection.
  */
-export function isScorable(result: MatchResult): boolean {
-  return result.note !== null && !result.silent && result.confidence >= MIN_CONFIDENCE;
-}

@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import {
-  loadPhase2,
+  
   savePhase2,
   type KidProfile,
   type Phase2Storage,

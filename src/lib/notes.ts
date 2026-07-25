@@ -54,9 +54,6 @@ export function parseNote(name: string): NoteName {
 }
 
 /** Stringify a NoteName back to "C4" / "F#5" form. */
-export function formatNote(note: NoteName): string {
-  return `${note.letter}${note.accidental}${note.octave}`;
-}
 
 /** True if this note name denotes a black key (sharp / flat). */
 export function isBlackKey(name: string): boolean {
@@ -165,9 +162,6 @@ export function getKeyboard(): KeyDescriptor[] {
 }
 
 /** Look up a single key by note name (e.g. "F#4"). Returns null if out of range. */
-export function findKey(note: string): KeyDescriptor | null {
-  return getKeyboard().find((k) => k.note === note) ?? null;
-}
 
 /** White-key descriptors only. */
 export function getWhiteKeys(): KeyDescriptor[] {
@@ -201,6 +195,41 @@ export function blackKeyWidthRatio(whiteCount: number): number {
 }
 
 /** Clamp an octave into the keyboard's playable range. */
-export function clampOctave(octave: number): number {
-  return Math.max(2, Math.min(6, octave));
+
+/** Build a lookup of { note -> { xRatio, widthRatio, isBlack } } for the
+ *  entire 61-key keyboard. Used by both useSongPlayer + useLessonEngine
+ *  to place falling notes above the correct piano column. */
+export interface ColumnInfo {
+  xRatio: number;
+  widthRatio: number;
+  isBlack: boolean;
+}
+
+export function buildColumnLookup(): Record<string, ColumnInfo> {
+  const whites = getWhiteKeys();
+  const blacks = getBlackKeys();
+  const whiteCount = whites.length;
+  const whiteWidth = 1 / whiteCount;
+  const blackWidth = whiteWidth * 0.62;
+  const lookup: Record<string, ColumnInfo> = {};
+
+  for (let i = 0; i < whites.length; i++) {
+    lookup[whites[i].note] = {
+      xRatio: i * whiteWidth,
+      widthRatio: whiteWidth,
+      isBlack: false,
+    };
+  }
+
+  for (const b of blacks) {
+    if (b.precedingWhiteIndex === undefined) continue;
+    const boundary = (b.precedingWhiteIndex + 1) * whiteWidth;
+    lookup[b.note] = {
+      xRatio: boundary - blackWidth / 2,
+      widthRatio: blackWidth,
+      isBlack: true,
+    };
+  }
+
+  return lookup;
 }

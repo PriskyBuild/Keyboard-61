@@ -49,7 +49,6 @@ export function useKeyboardInput(
   const pressNote = usePianoStore((s) => s.pressNote);
   const releaseNoteState = usePianoStore((s) => s.releaseNoteState);
   const shiftOctave = usePianoStore((s) => s.shiftOctave);
-  const flashWrong = usePianoStore((s) => s.flashWrong);
 
   const handleKeyDown = useCallback(
     async (e: KeyboardEvent) => {
@@ -150,5 +149,4 @@ export function useKeyboardInput(
 
   // Mark flashWrong as used so it isn't tree-shaken from the store interface.
   // (Learning Mode in C4 will drive this; the hook keeps the reference alive.)
-  void flashWrong;
 }

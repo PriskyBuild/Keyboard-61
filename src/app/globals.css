@@ -179,12 +179,6 @@
   100% { background: initial; box-shadow: initial; }
 }
 
-@keyframes piano-fall {
-  from { transform: translateY(-100%); opacity: 0; }
-  10%  { opacity: 1; }
-  to   { transform: translateY(0); opacity: 1; }
-}
-
 /* Custom scrollbar for the horizontal piano scroller */
 .piano-scroll::-webkit-scrollbar { height: 8px; }
 .piano-scroll::-webkit-scrollbar-track { background: oklch(0.12 0 0); }
@@ -287,12 +281,6 @@ html:not(.light):not(.dark) .piano-theme-toggle button[data-theme-choice="system
   50%      { transform: scale(1) rotate(180deg); opacity: 1; }
 }
 .animate-sparkle { animation: sparkle 1s ease-in-out infinite; }
-
-/* Kid-mode falling notes — slower + larger than the Learning Mode visualizer */
-@keyframes kid-fall {
-  from { transform: translateY(-110%); }
-  to   { transform: translateY(0); }
-}
 
 /* Green burst on correct note */
 @keyframes kid-green-burst {

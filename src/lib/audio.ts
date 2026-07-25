@@ -140,9 +140,6 @@ const SAMPLE_MAP: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 /** Returns true when the audio context has been initialised at least once. */
-export function isAudioInitialised(): boolean {
-  return initStarted;
-}
 
 /**
  * Initialise the Tone.js audio graph. Idempotent — safe to call multiple times.
@@ -431,31 +428,7 @@ export function nowSeconds(): number {
 }
 
 /** Convert a note name to a frequency (independent of Tone). */
-export function noteFrequency(note: string): number {
-  return noteToFrequency(note);
-}
 
 /**
  * Dispose of all audio nodes. Mainly useful for HMR / tests.
  */
-export function disposeAudio(): void {
-  instrument?.dispose();
-  if (fallbackInstrument && fallbackInstrument !== instrument) {
-    fallbackInstrument.dispose();
-  }
-  eqNode?.dispose();
-  reverb?.dispose();
-  volumeNode?.dispose();
-  instrument = null;
-  fallbackInstrument = null;
-  eqNode = null;
-  reverb = null;
-  volumeNode = null;
-  toneModule = null;
-  initPromise = null;
-  initStarted = false;
-  usingFallback = false;
-  sustainActive = false;
-  heldNotes.clear();
-  samplerLoadPromise = null;
-}

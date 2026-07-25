@@ -183,17 +183,3 @@ export async function startMicCapture(): Promise<MicCaptureHandle> {
  * Stop all tracks on every MediaStream we know about. Defensive — call on
  * tab blur / visibilitychange to guarantee the mic indicator goes away.
  */
-export function stopAllMicTracks(stream: MediaStream | null): void {
-  if (!stream) return;
-  try {
-    stream.getTracks().forEach((t) => {
-      try {
-        t.stop();
-      } catch {
-        /* noop */
-      }
-    });
-  } catch {
-    /* noop */
-  }
-}

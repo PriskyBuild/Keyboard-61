@@ -23,6 +23,7 @@ import {
   playFanfareCue,
 } from "@/lib/audio-cues";
 import type { KidFallingNote } from "@/components/listen/FallingNotesKid";
+import { buildColumnLookup } from "@/lib/notes";
 import type { CurriculumLesson } from "@/lib/curriculum";
 
 export type LessonPhase = "intro" | "warmup" | "guided" | "recital" | "complete";
@@ -145,7 +146,7 @@ export function useLessonEngine(
     return lesson.notes.map((n, i) => {
       // Reuse the column-lookup pattern from the song player.
       // For simplicity here we compute xRatio inline.
-      const xRatio = noteToColumnRatio(n.note);
+      const xRatio = buildColumnLookup()[n.note]?.xRatio ?? 0;
       const widthRatio = xRatio === null ? 0.02 : 0.022;
       return {
         id: `${lesson.id}-${i}`,
@@ -480,26 +481,5 @@ function persistLessonCompletion(
 // consolidate in P2-C5 when the curriculum arrives.
 // ---------------------------------------------------------------------------
 
-import { getBlackKeys, getWhiteKeys } from "@/lib/notes";
 
-const COLUMN_LOOKUP_KID = (function buildLookup() {
-  const whites = getWhiteKeys();
-  const blacks = getBlackKeys();
-  const whiteCount = whites.length;
-  const whiteWidth = 1 / whiteCount;
-  const blackWidth = whiteWidth * 0.62;
-  const lookup: Record<string, number> = {};
-  for (let i = 0; i < whites.length; i++) {
-    lookup[whites[i].note] = i * whiteWidth;
-  }
-  for (const b of blacks) {
-    if (b.precedingWhiteIndex === undefined) continue;
-    const boundary = (b.precedingWhiteIndex + 1) * whiteWidth;
-    lookup[b.note] = boundary - blackWidth / 2;
-  }
-  return lookup;
-})();
 
-function noteToColumnRatio(note: string): number | null {
-  return COLUMN_LOOKUP_KID[note] ?? null;
-}

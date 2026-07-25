@@ -37,6 +37,7 @@ import {
   Award,
   Zap,
   Crown,
+  GraduationCap,
 } from "lucide-react";
 
 interface Achievement {
@@ -576,4 +577,3 @@ function StatCard({
 }
 
 // Local import to avoid top-level dependency cycle.
-import { GraduationCap } from "lucide-react";

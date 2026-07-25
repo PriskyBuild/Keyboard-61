@@ -127,9 +127,6 @@ export function recordHighScore(
 }
 
 /** Get the high score for a song, or null if none. */
-export function getHighScore(songId: string): HighScore | null {
-  return loadPrefs().highScores[songId] ?? null;
-}
 
 // ---------------------------------------------------------------------------
 // Stats
@@ -170,12 +167,3 @@ export function bumpStat(
 }
 
 /** Clear all stored prefs + stats. Useful for a "Reset" button. */
-export function clearAll(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-    window.localStorage.removeItem(STORAGE_KEY_STATS);
-  } catch {
-    /* ignore */
-  }
-}

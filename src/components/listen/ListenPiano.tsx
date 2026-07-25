@@ -175,4 +175,3 @@ export function ListenPiano({
 }
 
 // Re-export isBlackKey for callers that want to check note color.
-export { isBlackKey };

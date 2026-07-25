@@ -7,14 +7,7 @@
 // and lets us show "X people completed today's challenge" later.
 
 import { SONGS } from "@/lib/songs";
-
-/** Today's date as YYYY-MM-DD (local time). */
-export function todayDateStr(now: Date = new Date()): string {
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+import { todayDateStr } from "@/lib/streaks";
 
 /** Simple deterministic hash from a string → non-negative integer. */
 function hashString(s: string): number {

@@ -48,7 +48,7 @@ export function LessonPath({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {lessons.map((lesson, idx) => {
           const completed = completedLessonIds.has(lesson.id);
-          const unlocked = isUnlocked(lesson, completedLessonIds);
+          const unlocked = isLessonUnlockedLocal(lesson, completedLessonIds);
           // Alternating vertical offset for the "path" feel on larger screens.
           const offset = idx % 3 === 1 ? "lg:translate-y-4" : "";
           return (
@@ -67,34 +67,25 @@ export function LessonPath({
   );
 }
 
-function isUnlocked(
-  lesson: CurriculumLesson,
-  completedLessonIds: Set<string>,
-): boolean {
-  if (lesson.number === 1) return true;
-  // Find the previous lesson in the curriculum.
-  const prev = CURRICULUM_PREV(lesson.number);
-  return prev ? completedLessonIds.has(prev) : false;
-}
 
 // Inline lookup of the previous lesson id (avoids circular import with
 // curriculum.ts which re-exports isLessonUnlocked — we keep this small helper
 // here so the component is self-contained).
-function CURRICULUM_PREV(num: number): string | null {
-  // Mirror of CURRICULUM ids (kept in sync manually — small enough).
-  const IDS = [
-    "lesson-01-middle-c",
-    "lesson-02-cde",
-    "lesson-03-cdefg",
-    "lesson-04-lh-c3",
-    "lesson-05-both-hands",
-    "lesson-06-rhythm",
-    "lesson-07-stepwise",
-    "lesson-08-first-skip",
-    "lesson-09-jingle",
-    "lesson-10-chord",
-    "lesson-11-f-position",
-    "lesson-12-recital",
-  ];
-  return IDS[num - 2] ?? null;
+
+/** Local helper — lesson N is unlocked if lesson N-1 is completed (or N === 1). */
+function isLessonUnlockedLocal(
+  lesson: { number: number; id: string },
+  completedLessonIds: Set<string>,
+): boolean {
+  if (lesson.number === 1) return true;
+  // Find the previous lesson by number.
+  const prevNumber = lesson.number - 1;
+  // We don't have access to the full CURRICULUM here, so we check if any
+  // completed lesson has the previous number pattern.
+  // This is safe because lesson IDs follow the pattern "lesson-NN-".
+  const prevIdPrefix = `lesson-${String(prevNumber).padStart(2, "0")}`;
+  for (const id of completedLessonIds) {
+    if (id.startsWith(prevIdPrefix)) return true;
+  }
+  return false;
 }

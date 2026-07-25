@@ -310,6 +310,3 @@ export const STICKER_CATALOG: StickerData[] = [
 ];
 
 /** Get a sticker by id. */
-export function getSticker(id: string): StickerData | undefined {
-  return STICKER_CATALOG.find((s) => s.id === id);
-}

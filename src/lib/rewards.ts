@@ -106,9 +106,6 @@ export function computeLessonRewards(
  *
  * @returns The coin delta (always 1 for a single correct note).
  */
-export function coinPerCorrectNote(): number {
-  return 1;
-}
 
 /**
  * Group stickers by theme for display in the album.
@@ -123,6 +120,3 @@ export function stickersByTheme(): Record<string, StickerData[]> {
 }
 
 /** Today's ISO date — used for the streak "completed today" check. */
-export function todayIsoDate(): string {
-  return todayDateStr();
-}

@@ -524,6 +524,3 @@ export function useSongPlayer(song: Song | null): UseSongPlayer {
 
 // Helper export so consumers can read the score without importing the store
 // separately.
-export function readScore(): Score {
-  return usePianoStore.getState().score;
-}

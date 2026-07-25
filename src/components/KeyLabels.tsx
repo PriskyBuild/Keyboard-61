@@ -43,18 +43,5 @@ export function decideLabel(
 }
 
 /** Convenience: build a lookup of note -> hint label for the whole keyboard. */
-export function buildHintLookup(octave: number): Record<string, string> {
-  return noteToPhysKey(octave);
-}
 
 /** Convenience: validate the keyboard table without rendering. */
-export function debugKeyboardSummary(): { count: number; first: string; last: string; white: number; black: number } {
-  const keys = getKeyboard();
-  return {
-    count: keys.length,
-    first: keys[0]?.note ?? "",
-    last: keys[keys.length - 1]?.note ?? "",
-    white: keys.filter((k) => !k.isBlack).length,
-    black: keys.filter((k) => k.isBlack).length,
-  };
-}
