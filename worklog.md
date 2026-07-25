@@ -95,3 +95,33 @@ Stage Summary:
 - Build is feature-rich: 9 songs, 12 lessons, mic listening, parent dashboard, sticker album, metronome, practice mode, command palette, theme toggle, stats panel, keyboard-shortcuts help, animated mascot with glow effects.
 - Lint clean, typecheck clean.
 - Recommended next focus: wire Practice Mode loop to the song player + add song-selection actions to the command palette + move songs to JSON.
+
+## Round 3 addendum — "Phase 2 disconnect" diagnosis + fix
+
+**User report:** "You need to check a disconnect between Phase 1 code and Phase 2 code. Even your own preview panel failed to show the Phase 2 updates. Are they both in 2 different sandbox or what is the problem?"
+
+### Investigation
+1. Verified Phase 2 files exist locally + are committed (`src/app/listen/`, `src/app/curriculum/`, `src/app/parent/`, `src/app/stickers/`, `src/components/listen/`, `src/components/curriculum/`, `src/components/parent/`, `src/components/rewards/`, `src/components/onboarding/`).
+2. Verified local dev server returns 200 on all 7 routes (`/`, `/listen`, `/curriculum`, `/parent`, `/stickers`, `/help/microphone`, `/api/health`).
+3. Verified rendered HTML on `/listen` contains "Bruno" + "Loading" (Suspense fallback for Phase 2 ListenPageInner).
+4. Verified rendered HTML on `/` (home) contains "Free Play" + "Learning" (Phase 1) but **NOT** any Phase 2 navigation links.
+
+### Root cause
+**`src/components/TopNav.tsx` had `if (pathname === "/") return null;`** — it deliberately hid itself on the home route. This was a design choice to "avoid stacking with AppShell's own header" — but it meant users landing on `/` had **zero visible way to discover Phase 2 routes** (no link to /listen, /curriculum, /parent, /stickers). The AppShell header only had a "Shortcuts" button + "Stats" button + theme toggle + GitHub link — no Phase 2 entry points.
+
+This was NOT a sandbox disconnect. Phase 1 and Phase 2 were both in the same sandbox, same repo, same build — but Phase 2 was unreachable from the home page.
+
+### Fix (commit `7a08146`)
+- `src/components/TopNav.tsx`: render a compact pill-nav on `/` (small icons + labels under the AppShell header) instead of returning null. The compact nav has an "Explore:" label and "Press ⌘K for commands" hint so users also discover the command palette.
+- `src/app/layout.tsx`: render `<TopNav/>` globally (before `{children}`).
+- `src/components/AppShell.tsx`: removed the duplicate `<TopNav/>` rendering to avoid double-rendering on home.
+
+### Verification
+- `/` now contains: `Explore`, `Listen`, `Lessons`, `Stickers`, `Parent` (Phase 2 nav links).
+- `/listen` shows full nav + Bruno mascot content.
+- `/curriculum` shows full nav + Welcome/Set up profile content.
+- All 7 routes return 200.
+- Lint + typecheck clean.
+
+### Lesson learned
+The "disconnect" was a UX/navigation issue, not a code/sandbox issue. When adding new routes, always ensure they're discoverable from the home page — even if the home page has its own header. Hiding navigation on a specific route is a foot-gun.
