@@ -269,3 +269,27 @@
 ### Next — P2-C9: Deploy ready
 - Final lint + typecheck.
 - Print git push commands.
+
+### P2-C9 — Deploy ready ✅ DONE
+- Final lint: clean (0 errors / 0 warnings).
+- Final typecheck: clean.
+- All 7 routes return 200: /, /listen, /curriculum, /parent, /stickers, /help/microphone, /api/health.
+- Phase-1 regression check: 36 white + 25 black = 61 keys still render. TopNav links to all phase-2 routes work.
+- Phase-2 features verified end-to-end via agent-browser:
+  - /listen: CalibrationFlow shows on first visit, can skip → DEMO_LESSON renders. /listen?lesson=lesson-01-middle-c renders the correct lesson.
+  - /curriculum: 12 lesson cards render with correct lock state.
+  - /stickers: coin counter + streak calendar + 35-sticker album render with test profile.
+  - /parent: PIN setup (1234/1234) unlocks dashboard. Profile creation (Alex, 🐻, age 7) works. Progress chart renders with 12 lesson bars. Settings panel works (tolerance slider, octave switch, time-limit slider, export/import/reset buttons visible).
+
+## Git push commands
+
+```bash
+git init
+git add .
+git commit -m "feat(phase2): piano learning app — mic + curriculum + parent dashboard"
+git branch -M main
+git remote add origin https://github.com/PriskyBuild/Piano-Learn.git
+git push -u origin main
+```
+
+(Vercel → New Project → Import the repo → Deploy. No env vars needed.)
