@@ -88,9 +88,66 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | "all">("all");
+
+  // Filter songs by search query + difficulty.
+  const filteredSongs = sortedSongs.filter((song) => {
+    if (filterDifficulty !== "all" && song.difficulty !== filterDifficulty) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        song.title.toLowerCase().includes(q) ||
+        song.artist.toLowerCase().includes(q) ||
+        (song.description ?? "").toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {sortedSongs.map((song, idx) => {
+    <div className="flex flex-col gap-3">
+      {/* Search + filter bar */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input
+          type="text"
+          placeholder="Search songs…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-slate-700 dark:bg-slate-900"
+          aria-label="Search songs"
+        />
+        <div className="flex gap-1">
+          {(["all", "Beginner", "Easy", "Intermediate"] as const).map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setFilterDifficulty(d)}
+              className={cn(
+                "rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
+                filterDifficulty === d
+                  ? "bg-amber-500 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700",
+              )}
+            >
+              {d === "all" ? "All" : d}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Results count */}
+      {searchQuery || filterDifficulty !== "all" ? (
+        <p className="text-xs text-muted-foreground">
+          {filteredSongs.length} of {sortedSongs.length} songs
+        </p>
+      ) : null}
+
+      {/* Song grid */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filteredSongs.map((song, idx) => {
         const isSelected =
           selectedId === song.id || current?.id === song.id;
         const noteCount = song.notes.length;
@@ -220,6 +277,16 @@ export function SongSelector({ onSelect, selectedId }: SongSelectorProps) {
           </div>
         );
       })}
+      </div>
+
+      {/* Empty state */}
+      {filteredSongs.length === 0 ? (
+        <div className="empty-state">
+          <span className="text-3xl">🔍</span>
+          <p className="text-sm font-medium">No songs found</p>
+          <p className="text-xs">Try a different search or filter.</p>
+        </div>
+      ) : null}
     </div>
   );
 }

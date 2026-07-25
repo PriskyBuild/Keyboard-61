@@ -632,3 +632,34 @@ html:not(.light):not(.dark) .piano-theme-toggle button[data-theme-choice="system
 .animate-heart-pop {
   animation: heart-pop 0.3s ease-out;
 }
+
+/* ============================================================
+ * Round 11 polish — count-up, slide-back, glow-pulse
+ * ========================================================== */
+
+/* Count-up — number "rolls up" into place */
+@keyframes count-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.animate-count-up {
+  animation: count-up 0.4s ease-out both;
+}
+
+/* Slide-back — element slides in from the right (for filters/search) */
+@keyframes slide-back {
+  from { transform: translateX(12px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-back {
+  animation: slide-back 0.3s ease-out both;
+}
+
+/* Glow-pulse — subtle ambient glow for hero/featured elements */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px 2px oklch(0.769 0.188 70.08 / 0.15); }
+  50%      { box-shadow: 0 0 20px 4px oklch(0.769 0.188 70.08 / 0.3); }
+}
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}

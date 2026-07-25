@@ -499,7 +499,7 @@ export default function AchievementsPage() {
           variant="outline"
           size="sm"
           className="gap-1.5"
-          onClick={() => {
+          onClick={async () => {
             const text = `🎹 Piano Learning App — My Progress\n\n` +
               `🏆 ${earned.length}/${total} badges earned (${percentEarned}%)\n` +
               `🎵 ${stats.totalNotesPlayed.toLocaleString()} notes played\n` +
@@ -508,19 +508,34 @@ export default function AchievementsPage() {
               `🔥 ${streakDays} streak days\n` +
               `🪙 ${progress?.coins ?? 0} coins\n\n` +
               `Play at: https://piano-learn.vercel.app`;
-            try {
-              navigator.clipboard.writeText(text);
-              // Show a brief "Copied!" confirmation.
-              const btn = document.activeElement as HTMLButtonElement;
+            const btn = document.activeElement as HTMLButtonElement;
+            const orig = btn?.textContent ?? "";
+            const showConfirm = (msg: string) => {
               if (btn) {
-                const orig = btn.textContent;
-                btn.textContent = "✓ Copied!";
+                btn.textContent = msg;
                 window.setTimeout(() => {
                   btn.textContent = orig;
                 }, 1500);
               }
-            } catch {
-              /* clipboard API unavailable */
+            };
+            // Try Web Share API first (mobile-friendly native sheet).
+            if (typeof navigator !== "undefined" && navigator.share) {
+              try {
+                await navigator.share({
+                  title: "My Piano Progress",
+                  text,
+                });
+              } catch {
+                /* user cancelled — no action needed */
+              }
+            } else {
+              // Fallback: copy to clipboard.
+              try {
+                await navigator.clipboard.writeText(text);
+                showConfirm("✓ Copied!");
+              } catch {
+                showConfirm("✗ Copy failed");
+              }
             }
           }}
         >
