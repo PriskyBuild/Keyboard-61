@@ -132,8 +132,17 @@ export function Piano({ onNotePress, onNoteRelease }: PianoProps) {
   return (
     <div
       ref={stageRef}
-      className="piano-stage w-full rounded-2xl border border-slate-700/40 p-3 shadow-2xl sm:p-4"
+      className="piano-stage relative w-full rounded-2xl border border-slate-700/40 p-3 shadow-2xl sm:p-4"
     >
+      {/* Audio loading overlay — shown when Tone.js is being imported */}
+      {audio.state.loading ? (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-900/80 backdrop-blur-sm">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-400 border-t-transparent" />
+          <p className="text-sm font-medium text-amber-200">Loading audio engine…</p>
+          <p className="text-[10px] text-slate-400">This only happens once — next time it&apos;ll be instant.</p>
+        </div>
+      ) : null}
+
       {/* Horizontal scroll container — overflow on small screens. */}
       <div className="piano-scroll overflow-x-auto overflow-y-hidden">
         <div

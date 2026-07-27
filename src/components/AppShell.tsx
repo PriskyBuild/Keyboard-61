@@ -74,6 +74,7 @@ export default function AppShell() {
           <AudioStatusBadge
             ready={audio.state.ready}
             usingFallback={audio.state.usingFallback}
+            loading={audio.state.loading}
             error={audio.state.error}
           />
         </div>
@@ -156,20 +157,25 @@ function Header({ onOpenHelp }: { onOpenHelp: () => void }) {
 function AudioStatusBadge({
   ready,
   usingFallback,
+  loading,
   error,
 }: {
   ready: boolean;
   usingFallback: boolean;
+  loading: boolean;
   error: string | null;
 }) {
-  let tone: "ready" | "loading" | "fallback" | "error" = "loading";
+  let tone: "ready" | "loading" | "fallback" | "error" | "idle" = "idle";
   let label = "Tap a key to enable audio";
-  if (error) {
+  if (loading) {
+    tone = "loading";
+    label = "Loading audio…";
+  } else if (error) {
     tone = "error";
     label = "Audio error";
   } else if (ready && usingFallback) {
     tone = "fallback";
-    label = "Synth fallback";
+    label = "Synth ready · loading samples…";
   } else if (ready) {
     tone = "ready";
     label = "Piano samples loaded";
@@ -181,7 +187,9 @@ function AudioStatusBadge({
         ? "bg-amber-500"
         : tone === "error"
           ? "bg-rose-500"
-          : "bg-slate-400 animate-pulse";
+          : tone === "loading"
+            ? "bg-amber-500 animate-pulse"
+            : "bg-slate-400 animate-pulse";
 
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">

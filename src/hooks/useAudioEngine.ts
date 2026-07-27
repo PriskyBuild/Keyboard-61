@@ -39,6 +39,7 @@ export interface UseAudioEngine {
 const INITIAL_STATE: AudioEngineState = {
   ready: false,
   usingFallback: false,
+  loading: false,
   error: null,
 };
 
@@ -69,7 +70,7 @@ export function useAudioEngine(): UseAudioEngine {
       .catch((err: unknown) => {
         if (!mounted) return;
         const message = err instanceof Error ? err.message : String(err);
-        setState({ ready: false, usingFallback: false, error: message });
+        setState({ ready: false, usingFallback: false, loading: false, error: message });
       });
     return () => {
       mounted = false;
@@ -77,17 +78,21 @@ export function useAudioEngine(): UseAudioEngine {
   }, []);
 
   const ensureReady = useCallback(async () => {
-    const mod = await loadAudioModule();
-    moduleRef.current = mod;
+    // Show loading state immediately so the UI can show a spinner.
+    if (!moduleRef.current) {
+      setState((s) => ({ ...s, loading: true }));
+    }
     try {
+      const mod = await loadAudioModule();
+      moduleRef.current = mod;
       await mod.initAudio();
       const next = mod.getAudioState();
-      setState({ ...next, error: null });
+      setState({ ...next, loading: false, error: null });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      setState({ ready: false, usingFallback: false, error: message });
+      setState({ ready: false, usingFallback: false, loading: false, error: message });
     }
-    return mod;
+    return moduleRef.current!;
   }, []);
 
   const playNote = useCallback(

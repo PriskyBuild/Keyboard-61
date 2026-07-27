@@ -342,6 +342,7 @@ export function getAudioState(): AudioEngineState {
   return {
     ready: Boolean(instrument),
     usingFallback,
+    loading: false,
     error: null,
   };
 }

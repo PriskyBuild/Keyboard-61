@@ -91,8 +91,11 @@ export interface Score {
 
 /** Audio engine state exposed to React. */
 export interface AudioEngineState {
+  /** True when the audio engine is fully initialized and ready to play. */
   ready: boolean;
   /** True when Sampler loaded; false when using PolySynth fallback. */
   usingFallback: boolean;
+  /** True when Tone.js is being loaded/imported (first click). */
+  loading: boolean;
   error: string | null;
 }
